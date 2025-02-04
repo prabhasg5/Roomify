@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Roomify AR View</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #ar-container { width: 100%; height: 100vh; position: relative; }
+        #status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        #item-list {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 200px;
+            z-index: 100;
+            font-size: 12px;
+        }
+        #item-list h4 { margin-bottom: 10px; color: #00d9ff; }
+        .item-entry { padding: 4px 0; border-bottom: 1px solid #333; }
+        .item-entry.loaded { color: #00ff88; }
+        .item-entry.error { color: #ff6b6b; }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        .ar-btn {
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            border: none;
+            border-radius: 25px;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #scale-controls {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ar-container"></div>
+    <div id="status">Loading...</div>
+    
+    <div id="item-list">
+        <h4>Furniture</h4>
+        <div id="items-container">Loading...</div>
+    </div>
+    
+    <div id="scale-controls">
+        <label>Scale:</label>
+        <input type="range" id="scale-slider" min="0.3" max="2" step="0.1" value="1">
+        <span id="scale-value">1x</span>
+    </div>
+    
+    <div id="controls">
+        <button class="ar-btn" onclick="resetCamera()">Reset View</button>
+        <button class="ar-btn" onclick="toggleWireframe()">Wireframe</button>
+    </div>
+
+    <!-- Same Three.js as original editor - served through AR server for CORS -->
+    <script src="http://localhost:8003/three/three.min.js"></script>
+    
+    <script>
+        var DESIGN_URL = 'http://localhost:8003/current-design';
+        var AR_SERVER = 'http://localhost:8003';
+        
+        var scene, camera, renderer;
+        var roomGroup;
+        var loadedMeshes = [];
+        var designData = null;
+        var spherical = { theta: Math.PI/4, phi: Math.PI/3, radius: 600 };
+        var isDragging = false;
+        var prevMouse = { x: 0, y: 0 };
+        
+        // Start
+        loadDesignAndInit();
+        
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+            console.log('[AR]', msg);
+        }
+        
+        function loadDesignAndInit() {
+            setStatus('Loading design...');
+            
+            // First try localStorage (most reliable - saved by export button)
+            var saved = localStorage.getItem('ar_room_design');
+            if (saved) {
+                try {
+                    designData = JSON.parse(saved);
+                    setStatus('Design loaded: ' + (designData.items ? designData.items.length : 0) + ' items');
+                    initScene();
+                    return;
+                } catch (e) {
+                    console.error('localStorage parse error:', e);
+                }
+            }
+            
+            // Fallback to server
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', DESIGN_URL, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        designData = JSON.parse(xhr.responseText);
+                        setStatus('Design loaded: ' + (designData.items ? designData.items.length : 0) + ' items');
+                        initScene();
+                    } catch (e) {
+                        setStatus('Error parsing design: ' + e.message);
+                    }
+                } else {
+                    setStatus('No design found - export from editor first');
+                }
+            };
+            xhr.onerror = function() {
+                setStatus('No design found - export from editor first');
+            };
+            xhr.send();
+        }
+        
+        function initScene() {
+            // Scene
+            scene = new THREE.Scene();
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
+            updateCamera();
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x1a1a2e);
+            document.getElementById('ar-container').appendChild(renderer.domElement);
+            
+            // Lights
+            var hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 0.6);
+            scene.add(hemiLight);
+            
+            var dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            dirLight.position.set(300, 500, 300);
+            scene.add(dirLight);
+            
+            var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            dirLight2.position.set(-300, 300, -300);
+            scene.add(dirLight2);
+            
+            // Room group
+            roomGroup = new THREE.Object3D();
+            scene.add(roomGroup);
+            
+            // Floor grid
+            var gridHelper = new THREE.GridHelper(500, 25);
+            gridHelper.setColors(0x444466, 0x333355);
+            roomGroup.add(gridHelper);
+            
+            // Setup mouse controls
+            setupControls();
+            
+            // Scale slider
+            document.getElementById('scale-slider').oninput = function() {
+                var s = parseFloat(this.value);
+                document.getElementById('scale-value').textContent = s.toFixed(1) + 'x';
+                roomGroup.scale.set(s, s, s);
+            };
+            
+            // Window resize
+            window.onresize = function() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            };
+            
+            // Load furniture
+            loadFurniture();
+            
+            // Start animation
+            animate();
+        }
+        
+        function updateCamera() {
+            camera.position.x = spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+            camera.position.y = spherical.radius * Math.cos(spherical.phi);
+            camera.position.z = spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+            camera.lookAt(new THREE.Vector3(0, 50, 0));
+        }
+        
+        function setupControls() {
+            var el = renderer.domElement;
+            
+            el.onmousedown = function(e) {
+                isDragging = true;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            };
+            
+            el.onmousemove = function(e) {
+                if (!isDragging) return;
+                var dx = e.clientX - prevMouse.x;
+                var dy = e.clientY - prevMouse.y;
+                spherical.theta -= dx * 0.01;
+                spherical.phi = Math.max(0.2, Math.min(Math.PI - 0.2, spherical.phi + dy * 0.01));
+                updateCamera();
+                prevMouse = { x: e.clientX, y: e.clientY };
+            };
+            
+            el.onmouseup = function() { isDragging = false; };
+            el.onmouseleave = function() { isDragging = false; };
+            
+            el.onwheel = function(e) {
+                e.preventDefault();
+                spherical.radius = Math.max(150, Math.min(1500, spherical.radius + e.deltaY * 0.5));
+                updateCamera();
+            };
+            
+            // Touch
+            el.ontouchstart = function(e) {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            };
+            el.ontouchmove = function(e) {
+                if (!isDragging || e.touches.length !== 1) return;
+                var dx = e.touches[0].clientX - prevMouse.x;
+                var dy = e.touches[0].clientY - prevMouse.y;
+                spherical.theta -= dx * 0.01;
+                spherical.phi = Math.max(0.2, Math.min(Math.PI - 0.2, spherical.phi + dy * 0.01));
+                updateCamera();
+                prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            };
+            el.ontouchend = function() { isDragging = false; };
+        }
+        
+        function loadFurniture() {
+            var container = document.getElementById('items-container');
+            container.innerHTML = '';
+            
+            if (!designData || !designData.items || designData.items.length === 0) {
+                container.innerHTML = '<div class="item-entry">No items - add furniture in editor first</div>';
+                setStatus('No furniture to display');
+                return;
+            }
+            
+            var items = designData.items;
+            var loaded = 0;
+            var failed = 0;
+            
+            // Create list items
+            for (var i = 0; i < items.length; i++) {
+                var div = document.createElement('div');
+                div.className = 'item-entry';
+                div.id = 'item-' + i;
+                div.textContent = '⏳ ' + (items[i].item_name || 'Item');
+                container.appendChild(div);
+            }
+            
+            // Load each model using XHR + manual parsing (more reliable than JSONLoader)
+            for (var i = 0; i < items.length; i++) {
+                (function(index) {
+                    var item = items[index];
+                    // Convert model URL to use AR server's proxied path
+                    // Original: "models/js/ik-ekero-orange_baked.js"
+                    // Proxied:  "http://localhost:8003/js-models/ik-ekero-orange_baked.js"
+                    var modelFile = item.model_url.replace('models/js/', '');
+                    var modelUrl = AR_SERVER + '/js-models/' + modelFile;
+                    var itemDiv = document.getElementById('item-' + index);
+                    
+                    setStatus('Loading: ' + item.item_name + '...');
+                    console.log('Fetching model:', modelUrl);
+                    
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', modelUrl, true);
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            try {
+                                // Parse the model file - could be pure JSON or JS assignment
+                                var jsContent = xhr.responseText.trim();
+                                var modelData;
+                                
+                                // Check if it starts with { (pure JSON)
+                                if (jsContent.charAt(0) === '{') {
+                                    modelData = JSON.parse(jsContent);
+                                } else {
+                                    // Try to extract JSON from JS variable assignment
+                                    var jsonMatch = jsContent.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/);
+                                    if (!jsonMatch) {
+                                        throw new Error('Could not extract JSON from model file');
+                                    }
+                                    modelData = JSON.parse(jsonMatch[1]);
+                                }
+                                
+                                var loader = new THREE.JSONLoader();
+                                var result = loader.parse(modelData);
+                                
+                                var material;
+                                if (result.materials && result.materials.length > 0) {
+                                    material = new THREE.MeshFaceMaterial(result.materials);
+                                } else {
+                                    // Use a default color based on item name
+                                    var color = getColorFromName(item.item_name);
+                                    material = new THREE.MeshLambertMaterial({ color: color });
+                                }
+                                
+                                var mesh = new THREE.Mesh(result.geometry, material);
+                                
+                                // Position exactly as saved
+                                mesh.position.set(
+                                    item.xpos || 0,
+                                    item.ypos || 0,
+                                    item.zpos || 0
+                                );
+                                mesh.rotation.y = item.rotation || 0;
+                                
+                                roomGroup.add(mesh);
+                                loadedMeshes.push(mesh);
+                                
+                                loaded++;
+                                itemDiv.className = 'item-entry loaded';
+                                itemDiv.textContent = '✓ ' + item.item_name;
+                                console.log('Loaded:', item.item_name, 'at', mesh.position);
+                                
+                                if (loaded + failed === items.length) {
+                                    finishLoading(loaded, failed);
+                                }
+                            } catch (e) {
+                                failed++;
+                                itemDiv.className = 'item-entry error';
+                                itemDiv.textContent = '✗ ' + item.item_name + ' (parse error)';
+                                console.error('Parse error for', item.item_name, ':', e);
+                                
+                                if (loaded + failed === items.length) {
+                                    finishLoading(loaded, failed);
+                                }
+                            }
+                        } else {
+                            failed++;
+                            itemDiv.className = 'item-entry error';
+                            itemDiv.textContent = '✗ ' + item.item_name + ' (HTTP ' + xhr.status + ')';
+                            console.error('HTTP error for', item.item_name, ':', xhr.status);
+                            
+                            if (loaded + failed === items.length) {
+                                finishLoading(loaded, failed);
+                            }
+                        }
+                    };
+                    xhr.onerror = function() {
+                        failed++;
+                        itemDiv.className = 'item-entry error';
+                        itemDiv.textContent = '✗ ' + item.item_name + ' (network error)';
+                        console.error('Network error for', item.item_name);
+                        
+                        if (loaded + failed === items.length) {
+                            finishLoading(loaded, failed);
+                        }
+                    };
+                    xhr.send();
+                })(i);
+            }
+        }
+        
+        function getColorFromName(name) {
+            name = (name || '').toLowerCase();
+            if (name.indexOf('orange') >= 0) return 0xff6600;
+            if (name.indexOf('red') >= 0) return 0xcc3333;
+            if (name.indexOf('blue') >= 0) return 0x3366cc;
+            if (name.indexOf('green') >= 0) return 0x33cc66;
+            if (name.indexOf('white') >= 0) return 0xeeeeee;
+            if (name.indexOf('gray') >= 0 || name.indexOf('grey') >= 0) return 0x888888;
+            if (name.indexOf('walnut') >= 0 || name.indexOf('wood') >= 0) return 0x8b4513;
+            if (name.indexOf('dark') >= 0) return 0x333333;
+            return 0x999999;
+        }
+        
+        function finishLoading(loaded, failed) {
+            setStatus('Loaded ' + loaded + ' items' + (failed > 0 ? ' (' + failed + ' failed)' : ''));
+            
+            // Center the room
+            if (loadedMeshes.length > 0) {
+                var center = new THREE.Vector3();
+                for (var i = 0; i < loadedMeshes.length; i++) {
+                    center.add(loadedMeshes[i].position);
+                }
+                center.divideScalar(loadedMeshes.length);
+                roomGroup.position.set(-center.x, 0, -center.z);
+            }
+        }
+        
+        function resetCamera() {
+            spherical = { theta: Math.PI/4, phi: Math.PI/3, radius: 600 };
+            updateCamera();
+        }
+        
+        function toggleWireframe() {
+            for (var i = 0; i < loadedMeshes.length; i++) {
+                var mesh = loadedMeshes[i];
+                if (mesh.material && mesh.material.materials) {
+                    for (var j = 0; j < mesh.material.materials.length; j++) {
+                        mesh.material.materials[j].wireframe = !mesh.material.materials[j].wireframe;
+                    }
+                } else if (mesh.material) {
+                    mesh.material.wireframe = !mesh.material.wireframe;
+                }
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

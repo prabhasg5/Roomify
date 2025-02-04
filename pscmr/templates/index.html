@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roomify - AI Room Designer</title>
+    <link rel="stylesheet" href="/static/css/styles.css">   
+</head>
+
+<body>
+    <h1>AI Room Designer</h1>
+    <p class="subtitle">Upload an empty room and let AI furnish it for you!</p>
+
+    <div class="container">
+        <form id="design-form">
+            <div class="upload-section">
+                <label for="imageUpload">Upload Empty Room Image:</label>
+                <input type="file" id="imageUpload" accept="image/*" required>
+                <div id="imagePreview" class="image-preview"></div>
+            </div>
+
+            <label for="room-type">Select Room Type:</label>
+            <select id="room-type" required>
+                <option value="">--Select Room--</option>
+                <option value="Living Room">Living Room</option>
+                <option value="Master Bedroom">Master Bedroom</option>
+                <option value="Kids Bedroom">Kids Bedroom</option>
+                <option value="Kitchen">Kitchen</option>
+                <option value="Dining Room">Dining Room</option>
+                <option value="Home Theatre">Home Theatre</option>
+                <option value="Study Room">Study Room</option>
+            </select>
+
+            <label for="cost-range">Select Budget Range:</label>
+            <select id="cost-range" required>
+                <option value="">--Select Budget--</option>
+                <option value="Low">Low Budget</option>
+                <option value="Medium">Medium Budget</option>
+                <option value="High">High Budget (Luxury)</option>
+            </select>
+            
+            <div class="budget-info">
+                <p>💰 Low Budget: Less than ₹3,00,000</p>
+                <p>💵 Medium Budget: ₹3,00,000 - ₹6,00,000</p>
+                <p>💎 High Budget: Greater than ₹6,00,000</p>
+            </div>
+
+            <label for="promptInput">Additional Preferences (Optional):</label>
+            <input type="text" id="promptInput" placeholder="e.g., Modern minimalist, warm colors, Scandinavian style...">
+
+            <button type="button" id="generateBtn" onclick="handleFormActions()">
+                <span id="btnText">🪄 Generate Furnished Room</span>
+                <span id="btnLoader" class="loader" style="display: none;"></span>
+            </button>
+        </form>
+
+        <!-- Room Analysis Section -->
+        <div id="analysisSection" style="display:none;">
+            <h3>🔍 Room Analysis (by Gemini Vision)</h3>
+            <p id="roomAnalysis" class="analysis-text"></p>
+        </div>
+
+        <!-- Items Table -->
+        <table id="items-table" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Price Range</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody id="items-body">
+                <!-- Items will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="resultContainer" style="display:none;">
+        <h2>✨ Generated Furnished Room:</h2>
+        <div class="result-wrapper">
+            <img id="resultImage" src="" alt="Generated Furnished Room">
+        </div>
+        <button id="downloadBtn" onclick="downloadImage()" class="download-btn">
+            📥 Download Image
+        </button>
+    </div>
+
+    <div id="errorContainer" style="display:none;">
+        <p id="errorMessage" class="error-text"></p>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>

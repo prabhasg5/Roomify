@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Build outputs
+*.glb
+*.gltf
+3d_room/example/models/glb/
+
+# Certificates (generated)
+3d_room/ar_view/*.pem
+3d_room/ar_view/cert.pem
+3d_room/ar_view/key.pem
+
+# Uploaded/generated files
+3d_room/ar_view/models/
+3d_room/ar_view/designs/
+pscmr/images/generated/
+pscmr/images/uploads/
+pscmr/uploads/
+pscmr/static/images/generated/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env

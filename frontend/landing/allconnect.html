@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <title>Roomify</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background-color: #0a0a0f;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: #000000;
+        color: #ffffff;
+      }
+
+      .section-one {
+        height: 100vh;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .navbar {
+        position: fixed;
+        margin-top: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        width: 1000px;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 15px 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 20px;
+        opacity: 0;
+        animation: fadeIn 0.5s ease forwards;
+        animation-delay: 2s;
+      }
+
+      .nav-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+      }
+
+      .brand {
+        font-size: 2.5em;
+        font-weight: bold;
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 40px;
+        font-size: 25px;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: #444;
+        font-weight: 600;
+        transition: color 0.9s ease-in-out;
+      }
+
+      .nav-links a:hover {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      .logo {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-size: 140px;
+        font-weight: bold;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 100px;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .model-container {
+        width: 900px; /* Set explicit width */
+        height: 1000px; /* Set explicit height */
+        background-image: url(3dhome.png); /* Using placeholder image */
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 100px;
+        transition: all 1.5s ease;
+        border-radius: 10px; /* Optional: adds rounded corners */
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1); /* Optional: adds subtle glow */
+      }
+
+      .description {
+        color: white;
+        font-size: 2.2rem;
+        position: absolute;
+        left: calc(25% - 310px);
+        top: 450px;
+        opacity: 0;
+        max-width: 600px;
+        font-family: sans-serif;
+      }
+
+      .get-started {
+        position: absolute;
+        left: calc(25% - 300px);
+        top: 700px;
+        padding: 20px 40px;
+        background-color: #2196f3;
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 1.5rem;
+        opacity: 0;
+        text-decoration: none;
+        animation: fadeIn 0.8s ease forwards;
+        animation-delay: 5s;
+      }
+
+      .section-two {
+        height: 100vh;
+        position: relative;
+        background-color: black;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .content-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        perspective: 1000px;
+      }
+
+      .zoom-container {
+        position: absolute;
+        text-align: center;
+        transform-style: preserve-3d;
+        transition: all 0.5s ease-out;
+        pointer-events: none;
+        top: 200px;
+      }
+
+      .zoom-text {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-size: 3rem;
+        font-weight: bold;
+        font-family: Arial, sans-serif;
+        white-space: nowrap;
+        transition: transform 0.3s ease-out;
+      }
+
+      .features-container {
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        visibility: hidden;
+        display: none;
+        transition: all 0.5s ease;
+        text-align: center;
+        width: 100%;
+        max-width: 1200px;
+      }
+
+      .features-title {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-size: 4rem;
+        margin-bottom: 2rem;
+        font-weight: bold;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        padding: 2rem;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2rem;
+        border-radius: 15px;
+        color: white;
+        transform: translateY(50px);
+        opacity: 0;
+        transition: all 0.5s ease;
+      }
+
+      .feature-card h3 {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        margin-bottom: 1rem;
+      }
+
+      .feature-card.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .animate-logo {
+        animation: moveLogoToLeft 1.2s ease forwards;
+        animation-delay: 0.1s;
+      }
+
+      .animate-model {
+        animation: moveModelToRight 1.2s ease forwards;
+        animation-delay: 0.1s;
+      }
+
+      @keyframes moveLogoToLeft {
+        to {
+          left: 23%;
+          transform: translateX(-50%);
+          top: 250px;
+        }
+      }
+
+      @keyframes moveModelToRight {
+        to {
+          left: 75%;
+          transform: translateX(-50%);
+          top: 0px;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Gallery Section Styling */
+      .gallery-section {
+        padding: 50px 0;
+        background-color: #000000;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .container {
+        width: 100%;
+        padding: 0 20px;
+        overflow: hidden;
+      }
+
+      .gallery-grid {
+        display: flex;
+        gap: 20px;
+        padding: 20px 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        /* Hide scrollbar */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        /* Enable mouse drag scroll */
+        cursor: grab;
+        user-select: none;
+        /* Add smooth movement */
+        scroll-snap-type: x mandatory;
+        /* Prevent vertical scroll when dragging */
+        overscroll-behavior: none;
+      }
+
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .gallery-grid::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Active state when scrolling */
+      .gallery-grid:active {
+        cursor: grabbing;
+      }
+
+      .gallery-item {
+        flex: 0 0 430px;
+        height: 430px;
+        position: relative;
+        scroll-snap-align: start;
+        /* Add perspective for smoother scaling */
+        transform-origin: center center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        pointer-events: none;
+        /* Prevent image drag */
+      }
+
+      /* Hover effects */
+      .gallery-item:hover {
+        transform: scale(1.1);
+        z-index: 2;
+        box-shadow: 2px solid red;
+      }
+
+      .gallery-item:hover img {
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+      }
+
+      /* Add subtle slide effect when hovering adjacent items */
+      .gallery-item:hover + .gallery-item {
+        transform: translateX(10px);
+      }
+
+      /* Smooth scroll on touch devices */
+      @media (max-width: 768px) {
+        .gallery-item {
+          flex: 0 0 250px;
+          height: 180px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .gallery-item {
+          flex: 0 0 200px;
+          height: 150px;
+        }
+
+        .gallery-item:hover {
+          transform: scale(1.05); /* Smaller scale on mobile */
+        }
+      }
+
+      /* Team Section Styles */
+      .team-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        background-color: #000000;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 20px;
+      }
+
+      .page-title {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-size: 4rem;
+        text-align: center;
+        margin-bottom: 3rem;
+        opacity: 0;
+        transform: translateY(50px);
+        animation: slideUp 0.5s ease forwards;
+      }
+
+      .team-row {
+        display: flex;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .team-member {
+        flex: 1;
+        opacity: 0;
+        transform: translateY(50px);
+        animation: slideUp 0.5s ease forwards;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 25%;
+      }
+
+      .profile-image {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin: 0 auto;
+        box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+      }
+
+      .profile-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .team-member:nth-child(1) {
+        animation-delay: 0.2s;
+      }
+
+      .team-member:nth-child(2) {
+        animation-delay: 0.4s;
+      }
+
+      .team-member:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+
+      .team-member:nth-child(4) {
+        animation-delay: 0.8s;
+      }
+
+      .team-social-links a {
+        color: #0077b5;
+        text-decoration: none;
+        transition: color 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 1rem;
+      }
+
+      .team-social-links a:hover {
+        color: #81b9eb;
+        text-shadow: 0 0 15px rgba(0, 119, 181, 0.8);
+      }
+
+      .team-member h5 {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        margin-top: 10px;
+      }
+
+      .text-muted {
+        font-size: 0.9rem;
+        text-align: center;
+        color: #cccccc !important;
+      }
+
+      /* Footer Separator */
+      .footer-separator {
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          #f1eded,
+          transparent
+        );
+        position: relative;
+        margin-bottom: 60px;
+        opacity: 0;
+        transform: scaleX(0);
+        animation: separatorFadeIn 1s ease forwards;
+      }
+      /* Footer Styles */
+      .footer {
+        background-color: black;
+        color: white;
+        padding: 60px 0 20px;
+        font-family: Arial, sans-serif;
+        opacity: 0;
+        transform: translateY(50px);
+        animation: footerSlideUp 0.8s ease forwards;
+        animation-delay: 0.3s;
+      }
+
+      .footer-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 40px;
+      }
+
+      .footer-section {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: sectionSlideUp 0.5s ease forwards;
+      }
+      .footer-section h3 {
+        background: linear-gradient(90deg, #d853bb, #415b96);
+        -webkit-background-clip: text;
+        color: transparent;
+        margin-bottom: 20px;
+      }
+
+      .footer-section:nth-child(1) {
+        animation-delay: 0.4s;
+      }
+
+      .footer-section:nth-child(2) {
+        animation-delay: 0.6s;
+      }
+
+      .footer-section:nth-child(3) {
+        animation-delay: 0.8s;
+      }
+
+      .footer-section:nth-child(4) {
+        animation-delay: 1s;
+      }
+
+      .footer-section h3 {
+        margin-bottom: 20px;
+        font-size: 18px;
+      }
+
+      .footer-section p {
+        color: #c0c0c0;
+        line-height: 1.6;
+      }
+
+      .footer-section ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .footer-section ul li {
+        margin-bottom: 10px;
+      }
+
+      .footer-section ul li a {
+        color: #c0c0c0;
+        text-decoration: none;
+        position: relative;
+        padding-left: 0;
+        transition: padding-left 0.3s ease, color 0.3s ease;
+      }
+
+      .footer-section ul li a:hover {
+        color: white;
+        padding-left: 10px;
+      }
+
+      .footer-section ul li a::before {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 1px;
+        background-color: white;
+        transition: width 0.3s ease;
+      }
+
+      .footer-section ul li a:hover::before {
+        width: 100%;
+      }
+
+      .footer-social-links {
+        display: flex;
+        gap: 15px;
+      }
+
+      .footer-social-links a {
+        color: #c0c0c0;
+        text-decoration: none;
+        font-size: 20px;
+        transition: color 0.3s ease;
+      }
+
+      .footer-social-links a:hover {
+        color: white;
+      }
+
+      .footer-bottom {
+        margin-top: 40px;
+        padding-top: 20px;
+        text-align: center;
+        border-top: 1px solid #333;
+        opacity: 0;
+        animation: fadeIn 0.5s ease forwards;
+        animation-delay: 1.2s;
+      }
+
+      .footer-bottom p {
+        color: #c0c0c0;
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      .footer-bottom a {
+        color: #c0c0c0;
+        text-decoration: none;
+        margin: 0 10px;
+        transition: color 0.3s ease;
+      }
+
+      .footer-bottom a:hover {
+        color: white;
+      }
+
+      /* Responsive Styles */
+      @media (max-width: 1200px) {
+        .gallery-item {
+          flex: 0 0 250px;
+          min-width: 250px;
+          height: 180px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .gallery-item {
+          flex: 0 0 200px;
+          min-width: 200px;
+          height: 150px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .gallery-title {
+          font-size: 2em;
+        }
+
+        .gallery-item {
+          flex: 0 0 180px;
+          min-width: 180px;
+          height: 120px;
+        }
+      }
+
+      /* Animations */
+      @keyframes slideUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes separatorFadeIn {
+        to {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+      }
+
+      @keyframes footerSlideUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes sectionSlideUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+        .team-row {
+          flex-wrap: wrap;
+        }
+
+        .team-member {
+          flex: 0 0 50%;
+          width: 50%;
+        }
+
+        .footer-content {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .team-member {
+          flex: 0 0 100%;
+          width: 100%;
+        }
+
+        .footer-content {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="section-one">
+      <nav class="navbar">
+        <div class="nav-content">
+          <div class="brand">Roomify</div>
+          <div class="nav-links">
+            <a href="#meetus">About Us</a>
+            <a href="#features">Features</a>
+            <a href="#gallery">Gallery</a>
+          </div>
+        </div>
+      </nav>
+
+      <div class="logo">Roomify</div>
+      <div class="model-container"></div>
+      <div class="description"></div>
+      <a href="2D_3D/cardindex.html" class="get-started">Get Started</a>
+    </section>
+
+    <section class="section-two">
+      <div class="content-wrapper">
+        <div class="zoom-container">
+          <div class="zoom-text">Empty Rooms To Beautiful Homes</div>
+        </div>
+        <div class="features-container" id="features">
+          <h2 class="features-title">Our Features</h2>
+          <div class="features-grid">
+            <div class="feature-card">
+              <h3>3D Visualization</h3>
+              <p>
+                Experience your room designs in immersive 3D before making any
+                changes.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3>AI Design Assistant</h3>
+              <p>
+                Get intelligent design suggestions based on your preferences and
+                space.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3>Real-time Editing</h3>
+              <p>Make changes to your design and see updates instantly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gallery" class="gallery-section">
+      <h1 class="page-title">Gallery</h1>
+      <div class="container">
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="master_bed.jpg" alt="Gallery Image 1" />
+          </div>
+          <div class="gallery-item">
+            <img src="kids_room.jpg" alt="Gallery Image 2" />
+          </div>
+          <div class="gallery-item">
+            <img src="kitchen.jpg" alt="Gallery Image 3" />
+          </div>
+          <div class="gallery-item">
+            <img src="living_room.jpg" alt="Gallery Image 4" />
+          </div>
+          <div class="gallery-item">
+            <img src="office.jpg" alt="Gallery Image 5" />
+          </div>
+          <div class="gallery-item">
+            <img src="theatre_room.jpg" alt="Gallery Image 6" />
+          </div>
+          <div class="gallery-item">
+            <img src="study_room.jpg" alt="Gallery Image 7" />
+          </div>
+          <div class="gallery-item">
+            <img src="gym.jpg" alt="Gallery Image 8" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="team-container" id="meetus">
+      <div class="container">
+        <h1 class="page-title">Meet Our Team</h1>
+        <div class="team-row">
+          <div class="team-member">
+            <div class="profile-image mb-3">
+              <img src="Prabha.jpg" alt="Team member" />
+            </div>
+            <h5>M. Jaya Nanda Prabhas</h5>
+            <p class="text-muted">Backend Developer</p>
+            <div class="team-social-links">
+              <a
+                href="https://www.linkedin.com/in/prabhasmekala"
+                class="linkedin"
+              >
+                <i class="fab fa-linkedin"></i>
+                LinkedIn
+              </a>
+            </div>
+          </div>
+
+          <div class="team-member">
+            <div class="profile-image mb-3">
+              <img src="Prashanth.jpg" alt="Team member" />
+            </div>
+            <h5>B. Prashanth Kumar</h5>
+            <p class="text-muted">Backend Developer</p>
+            <div class="team-social-links">
+              <a
+                href="https://www.linkedin.com/in/prasanth-kumar-bollinedi-919418329"
+                class="linkedin"
+              >
+                <i class="fab fa-linkedin"></i>
+                LinkedIn
+              </a>
+            </div>
+          </div>
+
+          <div class="team-member">
+            <div class="profile-image mb-3">
+              <img src="Nithish.jpg" alt="Team member" />
+            </div>
+            <h5>D. Nithish Kumar</h5>
+            <p class="text-muted">UI/UX Developer</p>
+            <div class="team-social-links">
+              <a
+                href="https://www.linkedin.com/in/nithishdaruvuri/"
+                class="linkedin"
+              >
+                <i class="fab fa-linkedin"></i>
+                LinkedIn
+              </a>
+            </div>
+          </div>
+
+          <div class="team-member">
+            <div class="profile-image mb-3">
+              <img src="varun.jpg" alt="Team member" />
+            </div>
+            <h5>K.Venkat Varun</h5>
+            <p class="text-muted">Frontend Developer</p>
+            <div class="team-social-links">
+              <a
+                href="https://www.linkedin.com/in/varun-kandukuri-585188338"
+                class="linkedin"
+              >
+                <i class="fab fa-linkedin"></i>
+                LinkedIn
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- <div class="footer-separator"></div>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>Company Name</h3>
+          <p>Making the world a better place through innovative solutions.</p>
+        </div>
+
+        <div class="footer-section">
+          <h3>Quick Links</h3>
+          <ul>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/services">Services</a></li>
+            <li><a href="/blog">Blog</a></li>
+            <li><a href="/careers">Careers</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-section">
+          <h3>Contact Us</h3>
+          <ul>
+            <li>123 Business Street</li>
+            <li>City, State 12345</li>
+            <li>Phone: (555) 123-4567</li>
+            <li>Email: info@company.com</li>
+          </ul>
+        </div>
+
+        <div class="footer-section">
+          <h3>Follow Us</h3>
+          <div class="footer-social-links">
+            <a href="#" title="Facebook"><i class="fab fa-facebook"></i></a>
+            <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2025 Company Name. All rights reserved.</p>
+        <div>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+        </div>
+      </div>
+    </footer> -->
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Navigation links smooth scroll
+        document.querySelectorAll(".nav-links a").forEach((anchor) => {
+          anchor.addEventListener("click", function (event) {
+            event.preventDefault();
+            const targetId = this.getAttribute("href");
+            const targetElement = document.querySelector(targetId);
+
+            if (targetElement) {
+              window.scrollTo({
+                top: targetElement.offsetTop - 50,
+                behavior: "smooth",
+              });
+            }
+          });
+        });
+
+        // Get Started button smooth scroll
+        const getStartedBtn = document.getElementById("getStartedBtn");
+        
+        if (getStartedBtn) {
+          getStartedBtn.addEventListener("click", function(e) {
+            // Only prevent default if it's an internal link
+            if (this.getAttribute("href").startsWith("#")) {
+              e.preventDefault();
+              const targetElement = document.querySelector(this.getAttribute("href"));
+              if (targetElement) {
+                targetElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start"
+                });
+              }
+            }
+            // External links will navigate normally
+          });
+        }
+
+        // First section animations
+        const logo = document.querySelector(".logo");
+        const model = document.querySelector(".model-container");
+        const description = document.querySelector(".description");
+        const text =
+          '"Home is where your journey begins and we provide a path to your home."' +
+          "\nA user friend solution for hassle free interior designing at your fingertips.";
+        let charIndex = 0;
+
+        setTimeout(() => {
+          logo.classList.add("animate-logo");
+          model.classList.add("animate-model");
+        }, 1000);
+
+        setTimeout(() => {
+          const typeInterval = setInterval(() => {
+            if (charIndex < text.length) {
+              description.textContent += text.charAt(charIndex);
+              description.style.opacity = 1;
+              charIndex++;
+            } else {
+              clearInterval(typeInterval);
+            }
+          }, 15);
+        }, 3000);
+
+        // Second section animations
+        const zoomContainer = document.querySelector(".zoom-container");
+        const zoomText = document.querySelector(".zoom-text");
+        const featuresContainer = document.querySelector(".features-container");
+        const featureCards = document.querySelectorAll(".feature-card");
+        const sectionTwo = document.querySelector(".section-two");
+
+        let isShowingFeatures = false;
+        let isZoomVisible = true;
+
+        const handleScroll = () => {
+          const rect = sectionTwo.getBoundingClientRect();
+          const scrollProgress = 1 - rect.top / window.innerHeight;
+
+          if (scrollProgress >= 0 && scrollProgress <= 1.5) {
+            const zoomScale = 1 + scrollProgress * 1.5;
+            const opacity = 1 - Math.max(0, scrollProgress - 0.8) * 5;
+
+            if (opacity <= 0 && isZoomVisible) {
+              isZoomVisible = false;
+              zoomContainer.style.visibility = "hidden";
+              zoomContainer.style.zIndex = "1";
+              setTimeout(() => {
+                zoomContainer.style.display = "none";
+              }, 500);
+            } else if (opacity > 0 && !isZoomVisible) {
+              isZoomVisible = true;
+              zoomContainer.style.display = "block";
+              zoomContainer.style.zIndex = "1";
+              requestAnimationFrame(() => {
+                zoomContainer.style.visibility = "visible";
+              });
+            }
+
+            if (isZoomVisible) {
+              zoomContainer.style.opacity = opacity;
+              zoomText.style.transform = `scale(${zoomScale})`;
+            }
+
+            if (scrollProgress > 0.9 && !isShowingFeatures) {
+              isShowingFeatures = true;
+              featuresContainer.style.display = "block";
+              featuresContainer.style.zIndex = "2";
+              requestAnimationFrame(() => {
+                featuresContainer.style.visibility = "visible";
+                featuresContainer.style.opacity = "1";
+
+                featureCards.forEach((card, index) => {
+                  setTimeout(() => {
+                    card.classList.add("show");
+                  }, index * 200);
+                });
+              });
+            } else if (scrollProgress < 0.8 && isShowingFeatures) {
+              isShowingFeatures = false;
+              featuresContainer.style.opacity = "0";
+              featuresContainer.style.zIndex = "1";
+              featureCards.forEach((card) => card.classList.remove("show"));
+
+              setTimeout(() => {
+                featuresContainer.style.visibility = "hidden";
+                featuresContainer.style.display = "none";
+              }, 500);
+            }
+          }
+        };
+        // Smooth scroll handling with requestAnimationFrame and debounce
+        let scrollTimeout;
+
+        window.addEventListener("scroll", () => {
+          if (scrollTimeout) {
+            cancelAnimationFrame(scrollTimeout);
+          }
+
+          scrollTimeout = requestAnimationFrame(() => {
+            handleScroll();
+            scrollTimeout = null;
+          });
+        });
+
+        // Initial check
+        handleScroll();
+      });
+      
+    </script>
+  </body>
+</html>

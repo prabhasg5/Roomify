@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Roomify AR - Place in Your Room</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        /* Preview mode styles */
+        .preview-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p { color: #888; font-size: 14px; margin-top: 5px; }
+        
+        #preview-canvas {
+            width: 100%;
+            height: 40vh;
+            min-height: 250px;
+            background: #222;
+            border-radius: 15px;
+            display: block;
+        }
+        
+        .controls {
+            padding: 20px 0;
+        }
+        .ar-button {
+            width: 100%;
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            border: none;
+            border-radius: 30px;
+            color: #1a1a2e;
+            padding: 18px 32px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .ar-button:disabled {
+            background: #444;
+            color: #888;
+        }
+        .ar-button.secondary {
+            background: transparent;
+            border: 2px solid #444;
+            color: white;
+            font-size: 16px;
+            padding: 14px 24px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+            color: #888;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .status.success { color: #00ff88; }
+        .status.error { color: #ff6b6b; }
+        
+        .item-list {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .item-list h4 { color: #00d9ff; margin-bottom: 10px; font-size: 14px; }
+        .item-entry { 
+            padding: 8px 0; 
+            border-bottom: 1px solid #333; 
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .item-entry:last-child { border-bottom: none; }
+        .item-entry.loaded { color: #00ff88; }
+        .item-entry.error { color: #ff6b6b; }
+        
+        /* AR mode styles */
+        #ar-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: none;
+            z-index: 1000;
+        }
+        #ar-overlay.active { display: block; }
+        
+        #ar-ui {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            z-index: 1001;
+        }
+        
+        #ar-status {
+            text-align: center;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #reticle-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 1002;
+        }
+        
+        .ar-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .ar-ctrl-btn {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            color: white;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 80px;
+        }
+        .ar-ctrl-btn:active { background: rgba(255,255,255,0.4); }
+        .ar-ctrl-btn.primary {
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+            border: none;
+        }
+        .ar-ctrl-btn.danger {
+            background: rgba(255,100,100,0.3);
+            border-color: #ff6b6b;
+        }
+        
+        #scale-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 15px;
+            border-radius: 25px;
+            margin-bottom: 15px;
+        }
+        #scale-control label { color: white; font-size: 14px; }
+        #scale-slider {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+        #scale-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #00d9ff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #scale-value { 
+            color: #00d9ff; 
+            font-weight: bold;
+            min-width: 50px;
+            text-align: right;
+        }
+        
+        #rotate-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 15px;
+            border-radius: 25px;
+            margin-bottom: 15px;
+        }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <!-- Preview Mode (before AR) -->
+    <div id="preview-mode" class="preview-container">
+        <div class="header">
+            <h1>🏠 Roomify AR</h1>
+            <p>Place your furniture in your real room</p>
+        </div>
+        
+        <canvas id="preview-canvas"></canvas>
+        
+        <div class="controls">
+            <button id="start-ar-btn" class="ar-button" disabled>
+                <span>📱</span> Start AR - Place in Room
+            </button>
+            <button id="refresh-btn" class="ar-button secondary">
+                🔄 Reload Design
+            </button>
+        </div>
+        
+        <div id="status" class="status">Initializing...</div>
+        
+        <div class="item-list">
+            <h4>Furniture to Place</h4>
+            <div id="items-container">Loading...</div>
+        </div>
+    </div>
+    
+    <!-- AR Mode (fullscreen camera) -->
+    <div id="ar-overlay">
+        <div id="reticle-hint">Point at a flat surface<br>then tap to place furniture</div>
+        
+        <div id="ar-ui">
+            <div id="ar-status">Looking for surfaces...</div>
+            
+            <div id="scale-control">
+                <label>📏 Scale:</label>
+                <input type="range" id="scale-slider" min="0.1" max="3" step="0.1" value="1">
+                <span id="scale-value">100%</span>
+            </div>
+            
+            <div id="rotate-control">
+                <label>🔄 Rotate:</label>
+                <button class="ar-ctrl-btn" id="rotate-left">← 45°</button>
+                <button class="ar-ctrl-btn" id="rotate-right">45° →</button>
+            </div>
+            
+            <div class="ar-controls">
+                <button class="ar-ctrl-btn" id="reset-btn">Reset</button>
+                <button class="ar-ctrl-btn primary" id="place-btn" disabled>Tap to Place</button>
+                <button class="ar-ctrl-btn danger" id="exit-ar-btn">Exit AR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <script>
+        const SERVER = window.location.origin;
+        const DESIGN_URL = SERVER + '/current-design';
+        
+        // Preview scene
+        let previewScene, previewCamera, previewRenderer;
+        let previewGroup;
+        
+        // AR scene
+        let arScene, arCamera, arRenderer;
+        let arGroup; // The furniture group to place
+        let reticle; // Hit-test indicator
+        let hitTestSource = null;
+        let hitTestSourceRequested = false;
+        let xrSession = null;
+        let isPlaced = false;
+        let currentScale = 1;
+        let currentRotation = 0;
+        
+        let designData = null;
+        let loadedModels = [];
+        
+        init();
+        
+        function setStatus(msg, type) {
+            document.getElementById('status').textContent = msg;
+            document.getElementById('status').className = 'status ' + (type || '');
+        }
+        
+        function setARStatus(msg) {
+            document.getElementById('ar-status').textContent = msg;
+        }
+        
+        function init() {
+            setupPreviewScene();
+            loadDesign();
+            setupEventListeners();
+            checkARSupport();
+        }
+        
+        function setupPreviewScene() {
+            const canvas = document.getElementById('preview-canvas');
+            
+            previewScene = new THREE.Scene();
+            previewScene.background = new THREE.Color(0x1a1a2e);
+            
+            previewCamera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+            previewCamera.position.set(2, 1.5, 2);
+            previewCamera.lookAt(0, 0, 0);
+            
+            previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            previewRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // Lights
+            previewScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            previewScene.add(dirLight);
+            
+            // Grid
+            previewScene.add(new THREE.GridHelper(4, 8, 0x444466, 0x333355));
+            
+            // Furniture group
+            previewGroup = new THREE.Group();
+            previewScene.add(previewGroup);
+            
+            // Touch orbit
+            setupPreviewControls(canvas);
+            
+            // Animate
+            function animate() {
+                requestAnimationFrame(animate);
+                previewRenderer.render(previewScene, previewCamera);
+            }
+            animate();
+        }
+        
+        function setupPreviewControls(canvas) {
+            let isDragging = false;
+            let prevX = 0, prevY = 0;
+            let theta = Math.PI / 4, phi = Math.PI / 3, radius = 3;
+            
+            function updateCamera() {
+                previewCamera.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                previewCamera.position.y = radius * Math.cos(phi);
+                previewCamera.position.z = radius * Math.sin(phi) * Math.sin(theta);
+                previewCamera.lookAt(0, 0.3, 0);
+            }
+            
+            canvas.addEventListener('touchstart', e => { 
+                if (e.touches.length === 1) {
+                    isDragging = true; 
+                    prevX = e.touches[0].clientX; 
+                    prevY = e.touches[0].clientY; 
+                }
+            });
+            canvas.addEventListener('touchmove', e => {
+                if (!isDragging || e.touches.length !== 1) return;
+                e.preventDefault();
+                theta -= (e.touches[0].clientX - prevX) * 0.01;
+                phi = Math.max(0.3, Math.min(Math.PI - 0.3, phi + (e.touches[0].clientY - prevY) * 0.01));
+                updateCamera();
+                prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+            });
+            canvas.addEventListener('touchend', () => isDragging = false);
+            
+            updateCamera();
+        }
+        
+        async function loadDesign() {
+            setStatus('Loading design...');
+            
+            // Clear existing
+            while (previewGroup.children.length > 0) {
+                previewGroup.remove(previewGroup.children[0]);
+            }
+            loadedModels = [];
+            
+            // Try localStorage
+            let data = localStorage.getItem('ar_room_design');
+            if (data) {
+                try {
+                    designData = JSON.parse(data);
+                    setStatus('Design loaded', 'success');
+                    loadFurniture(previewGroup);
+                    return;
+                } catch (e) { console.error(e); }
+            }
+            
+            // Try server
+            try {
+                const response = await fetch(DESIGN_URL);
+                if (response.ok) {
+                    designData = await response.json();
+                    setStatus('Design loaded', 'success');
+                    loadFurniture(previewGroup);
+                    return;
+                }
+            } catch (e) { console.error(e); }
+            
+            setStatus('No design found - export from editor', 'error');
+        }
+        
+        function loadFurniture(targetGroup) {
+            const container = document.getElementById('items-container');
+            container.innerHTML = '';
+            
+            if (!designData?.items?.length) {
+                container.innerHTML = '<div class="item-entry">No furniture in design</div>';
+                return;
+            }
+            
+            const items = designData.items;
+            const loader = new THREE.GLTFLoader();
+            let loaded = 0;
+            
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'item-entry';
+                div.innerHTML = `<span>⏳ ${item.item_name}</span>`;
+                container.appendChild(div);
+                
+                const jsFile = item.model_url.split('/').pop();
+                const glbFile = jsFile.replace('.js', '.glb');
+                const glbUrl = SERVER + '/glb/' + glbFile;
+                
+                loader.load(glbUrl, 
+                    (gltf) => {
+                        const model = gltf.scene;
+                        
+                        // Scale for AR (furniture in meters)
+                        // Original positions are in cm, convert to meters
+                        const scale = 0.01;
+                        model.position.set(
+                            (item.xpos || 0) * scale,
+                            (item.ypos || 0) * scale,
+                            (item.zpos || 0) * scale
+                        );
+                        model.rotation.y = item.rotation || 0;
+                        model.scale.setScalar(scale);
+                        
+                        targetGroup.add(model);
+                        loadedModels.push({ model, item });
+                        
+                        loaded++;
+                        div.className = 'item-entry loaded';
+                        div.innerHTML = `<span>✓ ${item.item_name}</span>`;
+                        
+                        if (loaded === items.length) {
+                            centerGroup(targetGroup);
+                            setStatus(`Loaded ${loaded} items - Ready for AR!`, 'success');
+                        }
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('Load error:', item.item_name, error);
+                        div.className = 'item-entry error';
+                        div.innerHTML = `<span>✗ ${item.item_name}</span>`;
+                        loaded++;
+                    }
+                );
+            });
+        }
+        
+        function centerGroup(group) {
+            const box = new THREE.Box3().setFromObject(group);
+            const center = box.getCenter(new THREE.Vector3());
+            group.children.forEach(child => {
+                child.position.x -= center.x;
+                child.position.z -= center.z;
+            });
+            // Keep Y at floor level
+            const minY = box.min.y;
+            group.children.forEach(child => {
+                child.position.y -= minY;
+            });
+        }
+        
+        async function checkARSupport() {
+            const btn = document.getElementById('start-ar-btn');
+            
+            if (!navigator.xr) {
+                btn.textContent = '❌ WebXR Not Supported';
+                btn.disabled = true;
+                setStatus('WebXR not available on this browser', 'error');
+                return;
+            }
+            
+            try {
+                const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                if (supported) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>📱</span> Start AR - Place in Room';
+                } else {
+                    btn.textContent = '❌ AR Not Available';
+                    btn.disabled = true;
+                    setStatus('AR not supported on this device', 'error');
+                }
+            } catch (e) {
+                btn.textContent = '❌ AR Check Failed';
+                btn.disabled = true;
+            }
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('refresh-btn').onclick = loadDesign;
+            document.getElementById('start-ar-btn').onclick = startAR;
+            document.getElementById('exit-ar-btn').onclick = exitAR;
+            document.getElementById('reset-btn').onclick = resetPlacement;
+            document.getElementById('place-btn').onclick = placeObject;
+            document.getElementById('rotate-left').onclick = () => rotateObject(-Math.PI / 4);
+            document.getElementById('rotate-right').onclick = () => rotateObject(Math.PI / 4);
+            
+            document.getElementById('scale-slider').oninput = function() {
+                currentScale = parseFloat(this.value);
+                document.getElementById('scale-value').textContent = Math.round(currentScale * 100) + '%';
+                updateARGroupTransform();
+            };
+        }
+        
+        async function startAR() {
+            try {
+                // Setup AR scene
+                arScene = new THREE.Scene();
+                arCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+                
+                arRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                arRenderer.setPixelRatio(window.devicePixelRatio);
+                arRenderer.setSize(window.innerWidth, window.innerHeight);
+                arRenderer.xr.enabled = true;
+                
+                // Lighting for AR
+                arScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+                dirLight.position.set(0, 5, 0);
+                arScene.add(dirLight);
+                
+                // Clone furniture for AR
+                arGroup = new THREE.Group();
+                arGroup.visible = false; // Hidden until placed
+                
+                // Clone from preview
+                previewGroup.children.forEach(child => {
+                    const clone = child.clone();
+                    arGroup.add(clone);
+                });
+                arScene.add(arGroup);
+                
+                // Create reticle (placement indicator)
+                const reticleGeometry = new THREE.RingGeometry(0.1, 0.12, 32);
+                reticleGeometry.rotateX(-Math.PI / 2);
+                const reticleMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
+                reticle.visible = false;
+                reticle.matrixAutoUpdate = false;
+                arScene.add(reticle);
+                
+                // Request AR session
+                xrSession = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['hit-test', 'local-floor'],
+                    optionalFeatures: ['dom-overlay'],
+                    domOverlay: { root: document.getElementById('ar-overlay') }
+                });
+                
+                xrSession.addEventListener('end', onSessionEnd);
+                
+                await arRenderer.xr.setSession(xrSession);
+                
+                // Show AR UI
+                document.getElementById('ar-overlay').classList.add('active');
+                document.getElementById('preview-mode').classList.add('hidden');
+                document.getElementById('reticle-hint').style.display = 'block';
+                
+                // Reset state
+                isPlaced = false;
+                currentScale = 1;
+                currentRotation = 0;
+                document.getElementById('scale-slider').value = 1;
+                document.getElementById('scale-value').textContent = '100%';
+                document.getElementById('place-btn').disabled = true;
+                
+                // Animation loop
+                arRenderer.setAnimationLoop(arRender);
+                
+                setARStatus('Point camera at floor, then tap to place');
+                
+            } catch (e) {
+                console.error('AR start error:', e);
+                setStatus('AR failed: ' + e.message, 'error');
+            }
+        }
+        
+        function arRender(timestamp, frame) {
+            if (!frame) return;
+            
+            const referenceSpace = arRenderer.xr.getReferenceSpace();
+            const session = arRenderer.xr.getSession();
+            
+            // Request hit test source
+            if (!hitTestSourceRequested) {
+                session.requestReferenceSpace('viewer').then(viewerSpace => {
+                    session.requestHitTestSource({ space: viewerSpace }).then(source => {
+                        hitTestSource = source;
+                    });
+                });
+                hitTestSourceRequested = true;
+            }
+            
+            // Process hit test results
+            if (hitTestSource && !isPlaced) {
+                const hitTestResults = frame.getHitTestResults(hitTestSource);
+                
+                if (hitTestResults.length > 0) {
+                    const hit = hitTestResults[0];
+                    const pose = hit.getPose(referenceSpace);
+                    
+                    reticle.visible = true;
+                    reticle.matrix.fromArray(pose.transform.matrix);
+                    
+                    document.getElementById('place-btn').disabled = false;
+                    document.getElementById('reticle-hint').innerHTML = 'Surface found!<br>Tap "Place" button';
+                    setARStatus('Surface detected - Tap to place furniture');
+                } else {
+                    reticle.visible = false;
+                    document.getElementById('place-btn').disabled = true;
+                    document.getElementById('reticle-hint').innerHTML = 'Point at a flat surface';
+                    setARStatus('Looking for flat surfaces...');
+                }
+            }
+            
+            arRenderer.render(arScene, arCamera);
+        }
+        
+        function placeObject() {
+            if (!reticle.visible) return;
+            
+            // Position furniture at reticle location
+            arGroup.position.setFromMatrixPosition(reticle.matrix);
+            arGroup.visible = true;
+            isPlaced = true;
+            
+            // Hide reticle and hint
+            reticle.visible = false;
+            document.getElementById('reticle-hint').style.display = 'none';
+            document.getElementById('place-btn').textContent = 'Placed ✓';
+            
+            updateARGroupTransform();
+            setARStatus('Furniture placed! Adjust scale and rotation below');
+        }
+        
+        function updateARGroupTransform() {
+            if (!arGroup) return;
+            arGroup.scale.setScalar(currentScale);
+            arGroup.rotation.y = currentRotation;
+        }
+        
+        function rotateObject(angle) {
+            currentRotation += angle;
+            updateARGroupTransform();
+        }
+        
+        function resetPlacement() {
+            isPlaced = false;
+            arGroup.visible = false;
+            document.getElementById('reticle-hint').style.display = 'block';
+            document.getElementById('reticle-hint').innerHTML = 'Point at a flat surface<br>then tap to place';
+            document.getElementById('place-btn').disabled = true;
+            document.getElementById('place-btn').textContent = 'Tap to Place';
+            currentRotation = 0;
+            setARStatus('Placement reset - find a new surface');
+        }
+        
+        function exitAR() {
+            if (xrSession) {
+                xrSession.end();
+            }
+        }
+        
+        function onSessionEnd() {
+            xrSession = null;
+            hitTestSource = null;
+            hitTestSourceRequested = false;
+            
+            document.getElementById('ar-overlay').classList.remove('active');
+            document.getElementById('preview-mode').classList.remove('hidden');
+            
+            if (arRenderer) {
+                arRenderer.setAnimationLoop(null);
+            }
+            
+            setStatus('AR session ended', 'success');
+        }
+    </script>
+</body>
+</html>

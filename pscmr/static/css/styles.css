@@ -1,0 +1,350 @@
+/* General styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: url('bf-image.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: #2c3e50;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+h1 {
+    color: #ffffff;
+    font-size: 3rem;
+    margin: 30px 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
+
+/* Container for the form */
+.container {
+    max-width: 700px;
+    margin: 30px auto;
+    background: rgba(255, 255, 255, 0.9); /* Slight transparency for better readability */
+    padding: 25px 40px;
+    border-radius: 12px;
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+/* Form styling */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+label {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #7f8c8d;
+    margin-bottom: 8px;
+}
+
+input[type="file"],
+input[type="text"],
+select {
+    padding: 12px;
+    font-size: 1.1rem;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    background-color: #f2f3f4;
+    transition: border 0.3s;
+}
+
+input[type="file"]:focus,
+input[type="text"]:focus,
+select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+button {
+    background: linear-gradient(to right, #e67e22, #f39c12);
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(to right, #d35400, #e67e22);
+}
+
+/* Table styles */
+table {
+    width: 100%;
+    margin-top: 25px;
+    border-collapse: collapse;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e1e5ec;
+}
+
+th {
+    background-color: #34495e;
+    color: white;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+td {
+    background-color: #f4f6f7;
+    color: #2c3e50;
+}
+
+a {
+    color: #e67e22;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Subtitle */
+.subtitle {
+    color: #ecf0f1;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+/* Upload section */
+.upload-section {
+    margin-bottom: 20px;
+}
+
+.image-preview {
+    display: none;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    border: 2px solid #bdc3c7;
+}
+
+/* Budget info box */
+.budget-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border-left: 4px solid #e67e22;
+}
+
+.budget-info p {
+    margin: 5px 0;
+    font-size: 0.95rem;
+    color: #555;
+}
+
+/* Button loader */
+button .loader {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Analysis section */
+#analysisSection {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border-left: 4px solid #3498db;
+}
+
+#analysisSection h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.analysis-text {
+    color: #555;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+/* Error container */
+#errorContainer {
+    background: #e74c3c;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 600px;
+}
+
+.error-text {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Image result container */
+#resultContainer {
+    margin-top: 40px;
+    padding: 20px;
+}
+
+#resultContainer h2 {
+    font-size: 2rem;
+    color: #ffffff;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.result-wrapper {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.download-btn {
+    margin-top: 20px;
+    background: linear-gradient(to right, #27ae60, #2ecc71);
+}
+
+.download-btn:hover {
+    background: linear-gradient(to right, #1e8449, #27ae60);
+}
+
+/* Result image - medium size */
+#resultImage {
+    max-width: 450px;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    border: 2px solid #e1e5ec;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#resultImage:hover {
+    transform: scale(1.05);
+}
+
+/* Compact result container */
+#resultContainer {
+    margin-top: 20px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#resultContainer h2 {
+    font-size: 1.2rem;
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.result-wrapper {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    display: block;
+    text-align: center;
+}
+
+.download-btn {
+    margin-top: 15px;
+    display: inline-block;
+    background: linear-gradient(to right, #27ae60, #2ecc71);
+    text-align: center;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  perspective: 100px;
+  margin: auto;
+}
+
+.loader div {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background: #3498db;
+  animation: rotateCube 1.2s infinite ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes rotateCube {
+  0% { transform: rotateX(0deg) rotateY(0deg); }
+  50% { transform: rotateX(180deg) rotateY(0deg); }
+  100% { transform: rotateX(180deg) rotateY(180deg); }
+}
+
+/* Responsive styling */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    button {
+        padding: 12px;
+        font-size: 1.1rem;
+    }
+
+    table {
+        font-size: 0.9rem;
+    }
+}
+/* Loading spinner styles */
+#loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh; /* Full viewport height for centering */
+    color: #ffffff;
+}
+
+.spinner {
+    border: 8px solid rgba(255, 255, 255, 0.3); /* Light color for spinner */
+    border-left: 8px solid #e67e22; /* Darker color for spinner */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite; /* Spin animation */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

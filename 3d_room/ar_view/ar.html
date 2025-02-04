@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AR GLB Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Import Model-Viewer JavaScript and dependencies -->
+    <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        body { 
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+        }
+        model-viewer {
+            width: 100%;
+            height: 600px;
+            background-color: #ffffff;
+        }
+        #error {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: red;
+            font-family: Arial, sans-serif;
+            display: none;
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error"></div>
+    <a href="intent://arvr.google.com/scene-viewer/1.0?file=YOUR_HTTPS_URL/living_room.glb&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https://developers.google.com/ar;end;">
+        <button style="background-color: #4CAF50; border: none; border-radius: 4px; color: white; padding: 12px 24px; font-size: 16px; cursor: pointer;">
+            View in Scene Viewer
+        </button>
+    </a>
+    <model-viewer
+    src="sofa.glb"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    ar-scale="fixed"
+    camera-controls
+    touch-action="pan-y"
+    alt="3D model"
+    style="width: 100%; height: 600px;"
+>
+    <button slot="ar-button" id="ar-button" style="background-color: #4CAF50; border: none; border-radius: 4px; color: white; padding: 12px 24px; font-size: 16px; cursor: pointer;">
+        View in AR
+    </button>
+</model-viewer>
+        
+        
+    <script
+    modelViewer.addEventListener('ar-status', (event) => {
+        console.log('AR Status:', event.detail);
+    }
+    
+    // Check if AR is available
+    if (modelViewer.canActivateAR) {
+        console.log('AR is available');
+    } else {
+        console.log('AR is not available');
+    }
+
+   
+        const modelViewer = document.querySelector('model-viewer');
+        const errorDiv = document.getElementById('error');
+
+        modelViewer.addEventListener('error', (error) => {
+            errorDiv.textContent = 'Error loading model: ' + error.detail.type;
+            errorDiv.style.display = 'block';
+        });
+    </script>
+</body>
+</html>

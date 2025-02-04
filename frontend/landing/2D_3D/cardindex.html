@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Card Hover Effect with Redirect</title>
+  <link rel="stylesheet" href="./cardstyle.css">
+  <script>
+    function redirectTo(directory) {
+      window.location.href = directory; // Redirects to the specified directory
+    }
+  </script>
+</head>
+<body>
+  <div class="card" onclick="redirectTo('http://127.0.0.1:5000')">
+    <div class="wrapper">
+      <img src="master_bed.jpg" class="cover-image" id="3dcp" />
+    </div>
+    <img src="2d generate (helvetica).png" class="title" />
+    <img src="sofa_no_bg.png" class="character" id="3d-after" />
+  </div>
+
+  <div class="card" onclick="redirectTo('http://127.0.0.1:8000/')">
+    <div class="wrapper"> 
+      <img src="living_room.jpg" class="cover-image" />
+    </div>
+    <img src="3d create(helvetica).png" class="title" />
+    <img src="Screenshot_2025-02-03_204309-removebg.png" class="character" />
+  </div>
+</body>
+</html>

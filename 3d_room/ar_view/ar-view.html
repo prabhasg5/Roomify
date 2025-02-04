@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Roomify AR View</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- Import Model-Viewer for AR -->
+    <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            font-size: 14px;
+            color: #888;
+        }
+        
+        #model-container {
+            width: 100%;
+            max-width: 600px;
+            background: #222;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        model-viewer {
+            width: 100%;
+            height: 60vh;
+            min-height: 400px;
+            background-color: #1a1a2e;
+            --poster-color: #1a1a2e;
+        }
+        
+        model-viewer::part(default-ar-button) {
+            display: none;
+        }
+        
+        .controls {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .ar-button {
+            background: linear-gradient(45deg, #00d9ff, #00ff88);
+            border: none;
+            border-radius: 30px;
+            color: #1a1a2e;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .ar-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+        
+        .ar-button:active {
+            transform: scale(0.98);
+        }
+        
+        .ar-button.disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .secondary-button {
+            background: transparent;
+            border: 2px solid #444;
+            border-radius: 30px;
+            color: white;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        
+        .secondary-button:hover {
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.1);
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button-row button {
+            flex: 1;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .status.error {
+            color: #ff6b6b;
+        }
+        
+        .status.success {
+            color: #00ff88;
+        }
+        
+        .model-list {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        
+        .model-list h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #888;
+        }
+        
+        .model-item {
+            background: #222;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .model-item:hover {
+            background: #333;
+        }
+        
+        .model-item .name {
+            font-size: 14px;
+            color: white;
+        }
+        
+        .model-item .date {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .instructions h4 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+            color: #aaa;
+        }
+        
+        .no-model {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .no-model svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏠 Roomify AR</h1>
+        <p>View your room design in Augmented Reality</p>
+    </div>
+    
+    <div id="model-container">
+        <div id="loading-state" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p style="margin-top: 20px; color: #888;">Loading your room design...</p>
+        </div>
+        
+        <div id="no-model-state" class="no-model" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <h3>No Room Design Found</h3>
+            <p>Export a room design from the 3D editor to view it here in AR.</p>
+        </div>
+        
+        <model-viewer
+            id="ar-model"
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="fixed"
+            camera-controls
+            touch-action="pan-y"
+            auto-rotate
+            shadow-intensity="1"
+            exposure="1"
+            environment-image="neutral"
+            alt="Your Room Design"
+            style="display: none;"
+        >
+            <button slot="ar-button" class="ar-button" id="ar-button-slot">
+                📱 View in AR
+            </button>
+        </model-viewer>
+        
+        <div class="controls">
+            <button id="ar-button" class="ar-button disabled">
+                📱 View in AR
+            </button>
+            
+            <div class="button-row">
+                <button id="refresh-btn" class="secondary-button">
+                    🔄 Refresh
+                </button>
+                <button id="list-btn" class="secondary-button">
+                    📋 All Designs
+                </button>
+            </div>
+            
+            <div id="status" class="status"></div>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h4>How to use AR:</h4>
+        <ol>
+            <li>Make sure you're on the same WiFi as your computer</li>
+            <li>Design your room in the 3D editor</li>
+            <li>Click "Export to AR" in the editor</li>
+            <li>Press "View in AR" button above</li>
+            <li>Point your camera at a flat surface</li>
+            <li>Tap to place your room design!</li>
+        </ol>
+    </div>
+    
+    <div id="model-list" class="model-list" style="display: none;">
+        <h3>Recent Designs</h3>
+        <div id="model-list-items"></div>
+    </div>
+    
+    <script>
+        const modelViewer = document.getElementById('ar-model');
+        const arButton = document.getElementById('ar-button');
+        const statusDiv = document.getElementById('status');
+        const loadingState = document.getElementById('loading-state');
+        const noModelState = document.getElementById('no-model-state');
+        
+        let currentModelUrl = null;
+        
+        // Get model URL from query parameters
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        
+        // Initialize
+        async function init() {
+            const modelParam = getQueryParam('model');
+            const designParam = getQueryParam('design');
+            
+            if (modelParam) {
+                loadModel(modelParam);
+            } else if (designParam) {
+                loadDesign(designParam);
+            } else {
+                // Try to load the latest model
+                await loadLatestModel();
+            }
+        }
+        
+        // Load a GLB model
+        function loadModel(modelUrl) {
+            showLoading();
+            
+            // Handle relative URLs
+            if (!modelUrl.startsWith('http')) {
+                modelUrl = window.location.origin + modelUrl;
+            }
+            
+            currentModelUrl = modelUrl;
+            
+            modelViewer.src = modelUrl;
+            modelViewer.style.display = 'block';
+            loadingState.style.display = 'none';
+            noModelState.style.display = 'none';
+            
+            modelViewer.addEventListener('load', () => {
+                enableARButton();
+                setStatus('Model loaded successfully!', 'success');
+            });
+            
+            modelViewer.addEventListener('error', (e) => {
+                setStatus('Error loading model: ' + e.detail.type, 'error');
+                showNoModel();
+            });
+        }
+        
+        // Load design from JSON and render
+        async function loadDesign(designFile) {
+            showLoading();
+            try {
+                const response = await fetch(`/design/${designFile}`);
+                if (!response.ok) throw new Error('Design not found');
+                
+                const design = await response.json();
+                // For now, show message that we need the GLB export
+                setStatus('Design found. Please export as GLB for AR view.', 'success');
+                showNoModel();
+            } catch (error) {
+                setStatus('Error loading design: ' + error.message, 'error');
+                showNoModel();
+            }
+        }
+        
+        // Load the latest uploaded model
+        async function loadLatestModel() {
+            showLoading();
+            try {
+                const response = await fetch('/list-models');
+                const data = await response.json();
+                
+                if (data.success && data.models && data.models.length > 0) {
+                    loadModel(data.models[0].url);
+                } else {
+                    showNoModel();
+                    setStatus('No room designs found. Export one from the 3D editor!');
+                }
+            } catch (error) {
+                showNoModel();
+                setStatus('Could not connect to server: ' + error.message, 'error');
+            }
+        }
+        
+        // Show list of all models
+        async function showModelList() {
+            const listContainer = document.getElementById('model-list');
+            const itemsContainer = document.getElementById('model-list-items');
+            
+            try {
+                const response = await fetch('/list-models');
+                const data = await response.json();
+                
+                if (data.success && data.models && data.models.length > 0) {
+                    itemsContainer.innerHTML = data.models.map(model => `
+                        <div class="model-item" onclick="loadModel('${model.url}')">
+                            <div>
+                                <div class="name">${model.name}</div>
+                                <div class="date">${new Date(model.created).toLocaleString()}</div>
+                            </div>
+                            <span>→</span>
+                        </div>
+                    `).join('');
+                    
+                    listContainer.style.display = 'block';
+                } else {
+                    itemsContainer.innerHTML = '<p style="color: #666; text-align: center;">No designs found</p>';
+                    listContainer.style.display = 'block';
+                }
+            } catch (error) {
+                setStatus('Error loading model list: ' + error.message, 'error');
+            }
+        }
+        
+        // UI Helpers
+        function showLoading() {
+            loadingState.style.display = 'flex';
+            noModelState.style.display = 'none';
+            modelViewer.style.display = 'none';
+        }
+        
+        function showNoModel() {
+            loadingState.style.display = 'none';
+            noModelState.style.display = 'block';
+            modelViewer.style.display = 'none';
+            disableARButton();
+        }
+        
+        function enableARButton() {
+            arButton.classList.remove('disabled');
+            arButton.textContent = '📱 View in AR';
+            arButton.onclick = () => {
+                if (modelViewer.canActivateAR) {
+                    modelViewer.activateAR();
+                } else {
+                    setStatus('AR not supported on this device', 'error');
+                }
+            };
+        }
+        
+        function disableARButton() {
+            arButton.classList.add('disabled');
+            arButton.textContent = '📱 No Model Loaded';
+            arButton.onclick = null;
+        }
+        
+        function setStatus(message, type = '') {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+        
+        // Event listeners
+        document.getElementById('refresh-btn').addEventListener('click', init);
+        document.getElementById('list-btn').addEventListener('click', showModelList);
+        
+        // Check AR availability
+        modelViewer.addEventListener('ar-status', (event) => {
+            if (event.detail.status === 'not-presenting') {
+                setStatus('AR session ended');
+            } else if (event.detail.status === 'session-started') {
+                setStatus('AR session started!', 'success');
+            }
+        });
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>
