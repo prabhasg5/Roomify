@@ -191,6 +191,18 @@ app.post('/cleanup', (req, res) => {
     }
 });
 
+// Get network info endpoint - returns current IP for dynamic QR codes
+app.get('/network-info', (req, res) => {
+    const ip = getLocalIP();
+    res.json({
+        ip: ip,
+        httpPort: 8003,
+        httpsPort: 8002,
+        arUrl: `https://${ip}:8002/ar-mobile.html`,
+        localUrl: 'http://localhost:8003/ar-mobile.html'
+    });
+});
+
 // Get local IP address
 function getLocalIP() {
     const interfaces = os.networkInterfaces();

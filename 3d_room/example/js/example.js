@@ -519,9 +519,26 @@ var mainControls = function(blueprint3d) {
     var itemCount = design.items ? design.items.length : 0;
     console.log('Items in design:', itemCount);
     
-    // URLs for different devices
-    var localUrl = 'http://localhost:8003/ar-mobile.html';
-    var networkUrl = 'https://YOUR_NETWORK_IP:8002/ar-mobile.html';
+    // Fetch real network IP from AR server
+    fetch('http://localhost:8003/network-info')
+      .then(function(response) { return response.json(); })
+      .then(function(networkInfo) {
+        showARExportDialog(itemCount, designData, networkInfo);
+      })
+      .catch(function(e) {
+        console.log('Could not get network info:', e.message);
+        // Fallback with placeholder
+        showARExportDialog(itemCount, designData, {
+          ip: 'YOUR_IP',
+          arUrl: 'https://YOUR_IP:8002/ar-mobile.html',
+          localUrl: 'http://localhost:8003/ar-mobile.html'
+        });
+      });
+  }
+  
+  function showARExportDialog(itemCount, designData, networkInfo) {
+    var localUrl = networkInfo.localUrl || 'http://localhost:8003/ar-mobile.html';
+    var mobileUrl = networkInfo.arUrl || 'https://' + networkInfo.ip + ':8002/ar-mobile.html';
     
     // Show modal with link
     var modal = document.getElementById('ar-modal');
@@ -533,11 +550,11 @@ var mainControls = function(blueprint3d) {
     
     document.getElementById('ar-export-loading').style.display = 'none';
     document.getElementById('ar-export-success').style.display = 'block';
-    document.getElementById('ar-url').value = localUrl;
+    document.getElementById('ar-url').value = mobileUrl;
     
-    // Generate QR code
+    // Generate QR code with real mobile URL
     if (typeof ARExporter !== 'undefined' && ARExporter.generateQRCode) {
-      ARExporter.generateQRCode(localUrl, document.getElementById('ar-qr-code'));
+      ARExporter.generateQRCode(mobileUrl, document.getElementById('ar-qr-code'));
     }
     
     // Also try to save to server
@@ -557,8 +574,8 @@ var mainControls = function(blueprint3d) {
     
     alert('Design exported! Items: ' + itemCount + '\n\n' +
           '📍 On this computer:\n' + localUrl + '\n\n' +
-          '📱 On mobile (same WiFi):\nhttps://YOUR_IP:8002/ar-mobile.html\n\n' +
-          'Check AR server console for your network IP.');
+          '📱 On mobile (same WiFi):\n' + mobileUrl + '\n\n' +
+          '(Scan the QR code or copy the link)');
     
     // Open AR view in new tab
     window.open(localUrl, '_blank');

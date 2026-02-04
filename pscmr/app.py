@@ -37,6 +37,7 @@ os.makedirs(GENERATED_FOLDER, exist_ok=True)
 # Load API keys from environment variables
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 HF_API_TOKEN = os.getenv('HF_API_TOKEN', '')
+STABILITY_API_KEY = os.getenv('STABILITY_API_KEY', '')
 
 # Configure Gemini
 if GEMINI_API_KEY:
@@ -120,6 +121,68 @@ def get_furniture_items_for_prompt(room_type, cost_range):
     return []
 
 
+def generate_with_stability_ai(image_path, prompt, room_type="room"):
+    """
+    Generate an image using Stability AI's Image-to-Image API.
+    Takes the empty room image and transforms it into a furnished room.
+    
+    Args:
+        image_path: Path to the source image (empty room)
+        prompt: Description of how to furnish the room
+        room_type: Type of room for context
+    """
+    try:
+        api_key = STABILITY_API_KEY
+        
+        if not api_key:
+            print("Stability AI: No API key found")
+            return None
+        
+        # Use Stable Image Core for image-to-image (better for transformations)
+        api_url = "https://api.stability.ai/v2beta/stable-image/control/sketch"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "image/*"
+        }
+        
+        # Build a strong prompt that emphasizes adding furniture
+        full_prompt = f"luxurious furnished {room_type} interior, {prompt}, elegant furniture, cozy decor, stylish design, professional interior design photography, warm lighting, high-end finishes, magazine quality, 4k ultra detailed"
+        
+        print(f"Stability AI: Generating furnished room...")
+        print(f"Stability AI: Prompt: {full_prompt[:100]}...")
+        
+        # Read the source image
+        with open(image_path, 'rb') as img_file:
+            files = {
+                "image": ("room.png", img_file, "image/png")
+            }
+            data = {
+                "prompt": full_prompt,
+                "control_strength": 0.7,  # Use room layout as guide
+                "output_format": "png"
+            }
+            
+            response = requests.post(api_url, headers=headers, files=files, data=data, timeout=120)
+        
+        if response.status_code == 200:
+            if len(response.content) > 1000:
+                print("Stability AI: Image generated successfully!")
+                return response.content
+            else:
+                print(f"Stability AI: Response too small ({len(response.content)} bytes)")
+        else:
+            error_msg = response.text[:300] if response.text else "Unknown error"
+            print(f"Stability AI error: {response.status_code} - {error_msg}")
+        
+        return None
+        
+    except Exception as e:
+        print(f"Stability AI error: {e}")
+        return None
+        return None
+
+
 def generate_with_huggingface(prompt, room_type="room"):
     """
     Generate an image using Hugging Face Inference API.
@@ -169,15 +232,6 @@ def generate_with_huggingface(prompt, room_type="room"):
                 return response.content
             else:
                 print(f"Hugging Face: Response too small ({len(response.content)} bytes)")
-        elif response.status_code == 503:
-            # Model is loading, wait and retry
-            print("Hugging Face: Model is loading, waiting...")
-            import time
-            time.sleep(20)
-            response = requests.post(api_url, json=payload, headers=headers, timeout=120)
-            if response.status_code == 200 and len(response.content) > 1000:
-                print("Hugging Face: Image generated successfully!")
-                return response.content
         else:
             print(f"Hugging Face error: {response.status_code} - {response.text[:200]}")
         
@@ -476,14 +530,22 @@ def generate():
         
         generated_image = None
         
-        # Step 3: Generate with Hugging Face (SDXL - FREE, no credit card needed!)
-        print("Generating image with Hugging Face (SDXL)...")
+        # Step 3: Generate with Stability AI (Primary - image-to-image)
+        print("Generating image with Stability AI (img2img)...")
         try:
-            generated_image = generate_with_huggingface(generation_prompt, room_type)
+            generated_image = generate_with_stability_ai(image_path, generation_prompt, room_type)
         except Exception as e:
-            print(f"Hugging Face error: {e}")
+            print(f"Stability AI error: {e}")
         
-        # Step 4: Fallback to Gemini if Hugging Face fails
+        # Step 4: Fallback to Hugging Face if Stability AI fails
+        if not generated_image:
+            print("Stability AI failed, trying Hugging Face (SDXL)...")
+            try:
+                generated_image = generate_with_huggingface(generation_prompt, room_type)
+            except Exception as e:
+                print(f"Hugging Face error: {e}")
+        
+        # Step 5: Fallback to Gemini if Hugging Face also fails
         if not generated_image:
             print("Hugging Face failed, trying Gemini Imagen...")
             try:
