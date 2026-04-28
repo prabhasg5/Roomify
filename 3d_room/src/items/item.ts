@@ -61,10 +61,10 @@ module BP3D.Items {
      * @param geometry TODO
      * @param material TODO
      * @param position TODO
-     * @param rotation TODO
+    * @param rotation Rotation in radians. Can be a single yaw (y) number or an object with x,y,z.
      * @param scale TODO 
      */
-    constructor(protected model: Model.Model, public metadata: Metadata, geometry: THREE.Geometry, material: THREE.MeshFaceMaterial, position: THREE.Vector3, rotation: number, scale: THREE.Vector3) {
+    constructor(protected model: Model.Model, public metadata: Metadata, geometry: THREE.Geometry, material: THREE.MeshFaceMaterial, position: THREE.Vector3, rotation: any, scale: THREE.Vector3) {
       super();
 
       this.scene = this.model.scene;
@@ -98,8 +98,14 @@ module BP3D.Items {
       this.geometry.computeBoundingBox();
       this.halfSize = this.objectHalfSize();
 
-      if (rotation) {
-        this.rotation.y = rotation;
+      if (rotation !== undefined && rotation !== null) {
+        if (typeof rotation === 'number') {
+          this.rotation.y = rotation;
+        } else {
+          this.rotation.x = rotation.x || 0;
+          this.rotation.y = rotation.y || 0;
+          this.rotation.z = rotation.z || 0;
+        }
       }
 
       if (scale != null) {

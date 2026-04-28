@@ -115,7 +115,7 @@ module BP3D.Model {
      * @param scale The initial scaling.
      * @param fixed True if fixed.
      */
-    public addItem(itemType: number, fileName: string, metadata, position: THREE.Vector3, rotation: number, scale: THREE.Vector3, fixed: boolean) {
+    public addItem(itemType: number, fileName: string, metadata, position: THREE.Vector3, rotation: any, scale: THREE.Vector3, fixed: boolean) {
       itemType = itemType || 1;
       var scope = this;
       var loaderCallback = function (geometry: THREE.Geometry, materials: THREE.Material[]) {

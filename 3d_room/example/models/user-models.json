@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Couch",
+    "image": "models/thumbnails/thumbnail_couch-1771955277196.png",
+    "model": "models/js/couch-1771955277196_baked.js",
+    "type": "1",
+    "addedAt": "2026-02-24T17:47:57.325Z",
+    "metadata": {
+      "name": "couch-1771955277196",
+      "vertices": 1729,
+      "faces": 2969,
+      "normals": 1051,
+      "uvs": 1468
+    }
+  },
+  {
+    "name": "Sofa 2",
+    "image": "models/thumbnails/thumbnail_sofa-2-1773380818620.png",
+    "model": "models/js/sofa-2-1773380818620_baked.js",
+    "glb": "models/glb/sofa-2-1773380818620.glb",
+    "type": "1",
+    "addedAt": "2026-03-13T05:46:58.754Z",
+    "metadata": {
+      "name": "sofa-2-1773380818620",
+      "vertices": 7692,
+      "faces": 13664,
+      "normals": 6905,
+      "uvs": 3790,
+      "materials": 1
+    }
+  }
+]

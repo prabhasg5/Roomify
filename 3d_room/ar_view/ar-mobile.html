@@ -396,32 +396,53 @@
                 previewGroup.remove(previewGroup.children[0]);
             }
             loadedModels = [];
-            
-            // Try localStorage
-            let data = localStorage.getItem('ar_room_design');
-            if (data) {
-                try {
-                    designData = JSON.parse(data);
-                    setStatus('Design loaded', 'success');
-                    loadFurniture(previewGroup);
-                    return;
-                } catch (e) { console.error(e); }
-            }
-            
-            // Try server
+
+            // Prefer server, then fallback to cached design
             try {
-                const response = await fetch(DESIGN_URL);
+                const response = await fetch(DESIGN_URL, { cache: 'no-store' });
                 if (response.ok) {
                     designData = await response.json();
+                    localStorage.setItem('ar_room_design', JSON.stringify(designData));
                     setStatus('Design loaded', 'success');
                     loadFurniture(previewGroup);
                     return;
                 }
-            } catch (e) { console.error(e); }
-            
+            } catch (e) { console.error('Server design fetch failed', e); }
+
+            // Fallback: cached design
+            let data = localStorage.getItem('ar_room_design');
+            if (data) {
+                try {
+                    designData = JSON.parse(data);
+                    setStatus('Loaded cached design', 'success');
+                    loadFurniture(previewGroup);
+                    return;
+                } catch (e) { console.error('Cached design parse failed', e); }
+            }
+
             setStatus('No design found - export from editor', 'error');
         }
         
+        function bakeModelTransforms(root) {
+            // Bake node transforms into geometry so orientation matches the editor's flattened JSON output
+            root.updateMatrixWorld(true);
+            root.traverse(node => {
+                if (node.isMesh && node.geometry) {
+                    node.geometry.applyMatrix4(node.matrixWorld);
+                    node.geometry.computeBoundingBox();
+                    node.geometry.computeBoundingSphere();
+                }
+            });
+            root.traverse(node => {
+                if (node.isMesh || node.isGroup || node.isObject3D) {
+                    node.position.set(0, 0, 0);
+                    node.rotation.set(0, 0, 0);
+                    node.scale.set(1, 1, 1);
+                    node.updateMatrixWorld(true);
+                }
+            });
+        }
+
         function loadFurniture(targetGroup) {
             const container = document.getElementById('items-container');
             container.innerHTML = '';
@@ -441,27 +462,71 @@
                 div.innerHTML = `<span>⏳ ${item.item_name}</span>`;
                 container.appendChild(div);
                 
-                const jsFile = item.model_url.split('/').pop();
-                const glbFile = jsFile.replace('.js', '.glb');
-                const glbUrl = SERVER + '/glb/' + glbFile;
+                                const glbUrl = (function() {
+                                    if (item.glb_url) {
+                                        // Stored as models/glb/<file>.glb from the upload catalog
+                                        const cleaned = item.glb_url.replace(/^\//, '');
+                                        const rewired = cleaned.replace(/^models\/glb\//, 'glb/');
+                                        return SERVER + '/' + rewired;
+                                    }
+                                    const jsFile = item.model_url.split('/').pop();
+                                    const glbFile = jsFile.replace('.js', '.glb');
+                                    return SERVER + '/glb/' + glbFile;
+                                })();
                 
                 loader.load(glbUrl, 
                     (gltf) => {
                         const model = gltf.scene;
-                        
-                        // Scale for AR (furniture in meters)
-                        // Original positions are in cm, convert to meters
-                        const scale = 0.01;
-                        model.position.set(
-                            (item.xpos || 0) * scale,
-                            (item.ypos || 0) * scale,
-                            (item.zpos || 0) * scale
+                        const fileHint = (item.glb_url || item.model_url || '');
+                        const isUploaded = /-\d{13,}\.glb$/i.test(fileHint) || /uploads\//i.test(fileHint);
+
+                        // Bake GLTF/GLB node transforms into geometry so the AR object matches the editor's flattened JSON output.
+                        bakeModelTransforms(model);
+
+                        // Match Blueprint3D pivoting: center geometry so saved positions/rotations line up with the editor
+                        const bbox = new THREE.Box3().setFromObject(model);
+                        const center = bbox.getCenter(new THREE.Vector3());
+                        const size = bbox.getSize(new THREE.Vector3());
+
+                        const container = new THREE.Group();
+                        container.name = item.item_name || `item-${index}`;
+                        container.add(model);
+
+                        if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) {
+                            model.position.sub(center);
+                        }
+
+                        // Floorplan coordinates are stored in cm, convert to meters for AR space
+                        const meterPosScale = 0.01;
+                        container.position.set(
+                            (item.xpos || 0) * meterPosScale,
+                            (item.ypos || 0) * meterPosScale,
+                            (item.zpos || 0) * meterPosScale
                         );
-                        model.rotation.y = item.rotation || 0;
-                        model.scale.setScalar(scale);
+                        const savedRotX = item.rotation_x || 0;
+                        const savedRotY = item.rotation_y || item.rotation || 0;
+                        const savedRotZ = item.rotation_z || 0;
+
+                        // Apply the editor's saved rotations directly.
+                        container.rotation.x = savedRotX;
+                        container.rotation.y = savedRotY;
+                        container.rotation.z = savedRotZ;
+
+                        // Heuristic: uploads are usually authored in meters; legacy catalog models are in cm.
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        let unitScale = isUploaded ? 1 : 0.01;
+
+                        if (isFinite(maxDim) && maxDim > 0) {
+                            if (unitScale === 1 && maxDim > 10) unitScale = 0.01; // Big numbers → likely cm, scale down
+                            if (unitScale === 0.01 && maxDim < 0.5) unitScale = 1; // Tiny after cm assumption → keep meters
+                        }
+
+                        const userScale = item.scale_x || item.scale || 1;
+                        const finalScale = unitScale * userScale;
+                        container.scale.setScalar(finalScale);
                         
-                        targetGroup.add(model);
-                        loadedModels.push({ model, item });
+                        targetGroup.add(container);
+                        loadedModels.push({ model: container, item });
                         
                         loaded++;
                         div.className = 'item-entry loaded';
@@ -474,9 +539,9 @@
                     },
                     undefined,
                     (error) => {
-                        console.error('Load error:', item.item_name, error);
+                        console.error('Load error:', item.item_name, glbUrl, error);
                         div.className = 'item-entry error';
-                        div.innerHTML = `<span>✗ ${item.item_name}</span>`;
+                        div.innerHTML = `<span>✗ ${item.item_name} (GLB failed)</span>`;
                         loaded++;
                     }
                 );

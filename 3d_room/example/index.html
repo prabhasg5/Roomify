@@ -7,11 +7,15 @@
     <link href="css/example.css" rel="stylesheet">
 
     <script src="js/three.min.js"></script>
+    <!-- Transform gizmo (r69 example build) -->
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r69/examples/js/controls/TransformControls.js"></script>
     <script src="js/blueprint3d.js"></script>
 
     <script src="js/jquery.js"></script>
     <script src="js/bootstrap.js"></script>
     
+    <script src="js/dxf-parser.js"></script>
+    <script src="js/cad-importer.js"></script>
     <script src="js/items.js"></script>
     <script src="js/ar-exporter.js"></script>
     <script src="js/example.js"></script>
@@ -49,6 +53,14 @@
             </a>
           </div>
           <hr />
+
+          <!-- Clear All Items (always visible) -->
+          <div style="padding: 5px 20px;">
+            <button class="btn btn-block btn-warning btn-sm" id="clear-all-items">
+              <span class="glyphicon glyphicon-remove-circle"></span> 
+              Clear All Placed Items
+            </button>
+          </div>
 
           <!-- Context Menu -->
           <div id="context-menu">
@@ -247,6 +259,20 @@
               <a class="btn btn-default bottom" href="#" id="move-right" >
                 <span class="glyphicon glyphicon-arrow-right"></span>
               </a>
+
+              <span>&nbsp;&nbsp;</span>
+
+              <div class="btn-group" role="group" aria-label="Transform gizmo">
+                <button type="button" class="btn btn-default bottom" id="gizmo-translate" title="Translate (T)">
+                  <span class="glyphicon glyphicon-move"></span>
+                </button>
+                <button type="button" class="btn btn-default bottom" id="gizmo-rotate" title="Rotate (R)">
+                  <span class="glyphicon glyphicon-repeat"></span>
+                </button>
+                <button type="button" class="btn btn-default bottom" id="gizmo-scale" title="Scale (S)">
+                  <span class="glyphicon glyphicon-resize-full"></span>
+                </button>
+              </div>
             </div>
 
             <div id="loading-modal">
@@ -271,6 +297,16 @@
                 <span class="glyphicon glyphicon-remove"></span>
                 Delete Walls
               </button>
+
+              <!-- CAD Import Button -->
+              <span class="cad-import-group">
+                <input type="file" id="cad-file-input" accept=".dxf" style="display:none">
+                <button id="import-cad-btn" class="btn btn-sm btn-info" title="Import a DXF/CAD file as floorplan">
+                  <span class="glyphicon glyphicon-upload"></span>
+                  Import CAD
+                </button>
+              </span>
+
               <span class="pull-right">
                 <button class="btn btn-primary btn-sm" id="update-floorplan">Done &raquo;</button>
               </span>
@@ -279,20 +315,209 @@
             <div id="draw-walls-hint">
               Press the "Esc" key to stop drawing walls
             </div>
+
+            <!-- CAD Import Modal -->
+            <div id="cad-import-modal">
+              <div class="cad-modal-backdrop"></div>
+              <div class="cad-modal-dialog">
+                <div class="cad-modal-header">
+                  <span class="cad-modal-close">&times;</span>
+                  <h4><span class="glyphicon glyphicon-upload"></span> Import CAD File</h4>
+                </div>
+                <div class="cad-modal-body">
+                  <!-- File info -->
+                  <div id="cad-file-info" style="display:none">
+                    <div class="alert alert-info">
+                      <strong>File:</strong> <span id="cad-file-name"></span>
+                    </div>
+                  </div>
+
+                  <!-- DXF Summary -->
+                  <div id="cad-summary" style="display:none">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">DXF File Summary</div>
+                      <div class="panel-body">
+                        <p><strong>Total entities:</strong> <span id="cad-total-entities"></span></p>
+                        <p><strong>Entity types:</strong> <span id="cad-entity-types"></span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Layer selection -->
+                  <div id="cad-layers-section" style="display:none">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">Layers Found</div>
+                      <div class="panel-body" id="cad-layers-list">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Settings -->
+                  <div class="panel panel-default">
+                    <div class="panel-heading">Import Settings</div>
+                    <div class="panel-body">
+                      <div class="form-group">
+                        <label for="cad-unit-select">Source units in CAD file:</label>
+                        <select id="cad-unit-select" class="form-control">
+                          <option value="cm">Centimeters</option>
+                          <option value="mm">Millimeters</option>
+                          <option value="m">Meters</option>
+                          <option value="in">Inches</option>
+                          <option value="ft" selected>Feet</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label for="cad-layer-filter">Layer filter (leave empty for all layers):</label>
+                        <input type="text" id="cad-layer-filter" class="form-control" placeholder="e.g. A-WALL, WALL">
+                        <small class="text-muted">Comma-separated layer names. Only entities on these layers will be imported.</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Error message -->
+                  <div id="cad-error" class="alert alert-danger" style="display:none"></div>
+                </div>
+                <div class="cad-modal-footer">
+                  <button id="cad-import-cancel" class="btn btn-default">Cancel</button>
+                  <button id="cad-import-confirm" class="btn btn-success" disabled>
+                    <span class="glyphicon glyphicon-import"></span> Import Floorplan
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <!-- Add Items -->
           <div id="add-items">
-            <div class="row" id="items-wrapper">
+            <!-- Upload Model Section -->
+            <div style="padding: 10px 15px; border-bottom: 2px solid #eee; background: #f9f9f9;">
+              <div class="row">
+                <div class="col-xs-12">
+                  <button class="btn btn-primary btn-block" id="upload-model-btn">
+                    <span class="glyphicon glyphicon-upload"></span> Upload 3D Model (.glb / .gltf)
+                  </button>
+                </div>
+              </div>
+            </div>
 
+            <!-- User Uploaded Models Section -->
+            <div id="user-models-section" style="display:none; padding: 5px 15px;">
+              <h5 style="color: #999; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; margin: 10px 0 5px;">My Uploaded Models</h5>
+              <div class="row" id="user-items-wrapper">
+                <!-- User uploaded items appear here -->
+              </div>
+              <hr style="margin: 5px 0;">
+            </div>
+
+            <!-- Built-in Models -->
+            <div style="padding: 0 15px;">
+              <h5 style="color: #999; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; margin: 10px 0 5px;">Built-in Models</h5>
+            </div>
+            <div class="row" id="items-wrapper">
               <!-- Items added here by items.js -->
             </div>
           </div>
-      
+
+          <!-- Upload Model Modal -->
+          <div id="upload-model-modal" class="modal fade" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">
+                    <span class="glyphicon glyphicon-upload"></span> Upload 3D Model
+                  </h4>
+                </div>
+                <div class="modal-body">
+                  <form id="upload-model-form" enctype="multipart/form-data">
+                    <!-- Model file -->
+                    <div class="form-group">
+                      <label for="model-file-input">3D Model File (.glb or .gltf)</label>
+                      <input type="file" id="model-file-input" name="model" accept=".glb,.gltf" class="form-control" required>
+                      <small class="text-muted">Max file size: 100MB</small>
+                    </div>
+
+                    <!-- Display name -->
+                    <div class="form-group">
+                      <label for="model-name-input">Display Name</label>
+                      <input type="text" id="model-name-input" name="name" class="form-control" placeholder="e.g. Modern Chair" required>
+                    </div>
+
+                    <!-- Item type -->
+                    <div class="form-group">
+                      <label for="model-type-select">Item Type</label>
+                      <select id="model-type-select" name="type" class="form-control">
+                        <option value="1" selected>Floor Item (furniture, lamps, etc.)</option>
+                        <option value="2">Wall Item (pictures, shelves, etc.)</option>
+                        <option value="3">In-Wall Item (windows)</option>
+                        <option value="7">In-Wall Floor Item (doors)</option>
+                        <option value="8">On-Floor Item (rugs, carpets)</option>
+                        <option value="9">Wall-Floor Item</option>
+                      </select>
+                    </div>
+
+                    <!-- Texture image (optional) -->
+                    <div class="form-group">
+                      <label for="model-texture-input">Texture Image (optional)</label>
+                      <input type="file" id="model-texture-input" name="texture" accept=".png,.jpg,.jpeg" class="form-control">
+                      <small class="text-muted">Upload a baked texture from Blender for accurate colors. If not provided, colors will be derived from the model's materials.</small>
+                    </div>
+
+                    <!-- Custom thumbnail (optional) -->
+                    <div class="form-group">
+                      <label for="model-thumbnail-input">Thumbnail Image (optional)</label>
+                      <input type="file" id="model-thumbnail-input" name="thumbnail" accept="image/*" class="form-control">
+                      <small class="text-muted">If not provided, one will be auto-generated from the model texture.</small>
+                    </div>
+
+                    <!-- Scale option -->
+                    <div class="form-group">
+                      <label for="model-scale-select">Scale</label>
+                      <select id="model-scale-select" name="scaleFactor" class="form-control">
+                        <option value="auto" selected>Auto-detect (recommended)</option>
+                        <option value="100">Meters → Centimeters (×100)</option>
+                        <option value="10">Decimeters → Centimeters (×10)</option>
+                        <option value="1">No scaling (×1)</option>
+                        <option value="2.54">Inches → Centimeters (×2.54)</option>
+                        <option value="30.48">Feet → Centimeters (×30.48)</option>
+                      </select>
+                      <small class="text-muted">If the model appears too small or too large, try a different scale option.</small>
+                    </div>
+                  </form>
+
+                  <!-- Upload progress -->
+                  <div id="upload-progress" style="display:none;">
+                    <div class="progress">
+                      <div id="upload-progress-bar" class="progress-bar progress-bar-striped active" role="progressbar" style="width: 0%">
+                        <span id="upload-progress-text">Uploading...</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Upload result -->
+                  <div id="upload-success" class="alert alert-success" style="display:none;">
+                    <strong>Success!</strong> <span id="upload-success-message"></span>
+                  </div>
+                  <div id="upload-error" class="alert alert-danger" style="display:none;">
+                    <strong>Error:</strong> <span id="upload-error-message"></span>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-primary" id="upload-model-submit">
+                    <span class="glyphicon glyphicon-upload"></span> Convert &amp; Add
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
         <!-- End Right Column -->
       </div>
     </div>
 
+    <script src="js/model-upload.js"></script>
   </body>
 </html>

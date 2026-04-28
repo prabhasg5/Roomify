@@ -255,3 +255,140 @@ div {
 #downloadGLB:hover, #downloadGLB-sidebar:hover {
   background: #138496;
 }
+
+/*
+ * CAD Import Styles
+ */
+
+.cad-import-group {
+  margin-left: 10px;
+}
+
+#import-cad-btn {
+  background: #5bc0de;
+  border-color: #46b8da;
+  color: #fff;
+}
+
+#import-cad-btn:hover {
+  background: #31b0d5;
+  border-color: #269abc;
+}
+
+/* CAD Import Modal */
+#cad-import-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+}
+
+#cad-import-modal.visible {
+  display: block;
+}
+
+.cad-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.cad-modal-dialog {
+  position: relative;
+  margin: 40px auto;
+  max-width: 550px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  z-index: 2001;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.cad-modal-header {
+  background: linear-gradient(135deg, #5bc0de 0%, #31b0d5 100%);
+  color: #fff;
+  padding: 15px 20px;
+}
+
+.cad-modal-header h4 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.cad-modal-close {
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+  opacity: 0.8;
+  line-height: 1;
+}
+
+.cad-modal-close:hover {
+  opacity: 1;
+}
+
+.cad-modal-body {
+  padding: 20px;
+}
+
+.cad-modal-body .panel {
+  margin-bottom: 15px;
+}
+
+.cad-modal-body .form-group {
+  margin-bottom: 12px;
+}
+
+.cad-modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  text-align: right;
+}
+
+.cad-modal-footer .btn {
+  margin-left: 8px;
+}
+
+/* CAD layer checkboxes */
+.cad-layer-item {
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cad-layer-item:last-child {
+  border-bottom: none;
+}
+
+.cad-layer-item label {
+  display: block;
+  cursor: pointer;
+  font-weight: normal;
+  margin: 0;
+}
+
+.cad-layer-item .badge {
+  margin-left: 8px;
+}
+
+.cad-layer-item .text-muted {
+  font-size: 11px;
+}
+
+/* Import progress */
+#cad-import-progress {
+  display: none;
+  text-align: center;
+  padding: 20px;
+}
+
+#cad-import-progress .progress {
+  margin-top: 10px;
+}

@@ -346,7 +346,9 @@
                                     item.ypos || 0,
                                     item.zpos || 0
                                 );
-                                mesh.rotation.y = item.rotation || 0;
+                                mesh.rotation.x = item.rotation_x || 0;
+                                mesh.rotation.y = item.rotation_y || item.rotation || 0;
+                                mesh.rotation.z = item.rotation_z || 0;
                                 
                                 roomGroup.add(mesh);
                                 loadedMeshes.push(mesh);

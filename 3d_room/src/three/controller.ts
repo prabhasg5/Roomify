@@ -56,12 +56,10 @@ module BP3D.Three {
     // invoked via callback when item is loaded
     function itemLoaded(item) {
       if (!item.position_set) {
+        // Auto-select the new item but keep camera controls enabled;
+        // user can decide when to drag.
         scope.setSelectedObject(item);
-        switchState(states.DRAGGING);
-        var pos = item.position.clone();
-        pos.y = 0;
-        var vec = three.projectVector(pos);
-        clickPressed(vec);
+        switchState(states.SELECTED);
       }
       item.position_set = true;
     }
@@ -173,6 +171,13 @@ module BP3D.Three {
     function mouseDownEvent(event) {
       if (scope.enabled) {
         event.preventDefault();
+
+        // Allow camera orbit/pan even when clicking over a large object
+        // by bypassing selection/drag when user uses right-click or holds Alt.
+        // OrbitControls will handle the event.
+        if (event.altKey || event.button === 2) {
+          return;
+        }
 
         mouseMoved = false;
         mouseDown = true;

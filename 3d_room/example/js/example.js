@@ -82,6 +82,128 @@ var CameraButtons = function(blueprint3d) {
 }
 
 /*
+ * 3-axis Transform Gizmo (move/rotate/scale)
+ */
+
+var TransformGizmo = function(blueprint3d) {
+  if (typeof THREE === 'undefined' || typeof THREE.TransformControls === 'undefined') {
+    console.warn('TransformControls not loaded');
+    return;
+  }
+
+  var three = blueprint3d.three;
+  var camera = three.getCamera ? three.getCamera() : null;
+  var domElement = (three.controls && three.controls.domElement) || document;
+  var scene = blueprint3d.model.scene.getScene();
+
+  if (!camera) {
+    console.warn('No camera found for TransformControls');
+    return;
+  }
+
+  var gizmo = new THREE.TransformControls(camera, domElement);
+  gizmo.setMode('translate');
+  gizmo.setSpace('world');
+  gizmo.visible = false;
+  scene.add(gizmo);
+
+  stylizeHandles();
+
+  function setMode(mode) {
+    gizmo.setMode(mode);
+    ['translate','rotate','scale'].forEach(function(m){
+      var btn = $('#gizmo-' + m);
+      if (btn.length) {
+        if (m === mode) btn.addClass('btn-primary'); else btn.removeClass('btn-primary');
+      }
+    });
+    three.needsUpdate();
+  }
+
+  function attach(item) {
+    gizmo.attach(item);
+    gizmo.visible = true;
+    three.needsUpdate();
+  }
+
+  function detach() {
+    gizmo.detach();
+    gizmo.visible = false;
+    three.needsUpdate();
+  }
+
+  gizmo.addEventListener('change', function(){
+    snapToFloor(gizmo.object);
+    three.needsUpdate();
+    blueprint3d.model.scene.needsUpdate = true;
+  });
+  gizmo.addEventListener('mouseDown', function(){ three.controls.enabled = false; });
+  gizmo.addEventListener('mouseUp', function(){ three.controls.enabled = true; });
+
+  three.itemSelectedCallbacks.add(function(item){ attach(item); });
+  three.itemUnselectedCallbacks.add(function(){ detach(); });
+
+  $('#gizmo-translate').click(function(e){ e.preventDefault(); setMode('translate'); });
+  $('#gizmo-rotate').click(function(e){ e.preventDefault(); setMode('rotate'); });
+  $('#gizmo-scale').click(function(e){ e.preventDefault(); setMode('scale'); });
+
+  window.addEventListener('keydown', function(e){
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.key === 't' || e.key === 'T') setMode('translate');
+    if (e.key === 'r' || e.key === 'R') setMode('rotate');
+    if (e.key === 's' || e.key === 'S') setMode('scale');
+  });
+
+  // initialize button state
+  setMode('translate');
+
+  function snapToFloor(obj) {
+    if (!obj || !obj.metadata) return;
+    // Floor-bound item types: 1 (floor), 8 (on-floor). Others are left untouched (walls, ceiling, decor).
+    var t = obj.metadata.itemType;
+    if (t !== 1 && t !== 8) return;
+
+    var box = new THREE.Box3().setFromObject(obj);
+    if (!isFinite(box.min.y)) return;
+    var offset = -box.min.y; // bring lowest point to y=0
+    obj.position.y += offset;
+  }
+
+  function stylizeHandles() {
+    var pastel = { X: 0xe86a6a, Y: 0x5ac48c, Z: 0x6aa8e8 };
+    gizmo.setSize(0.85);
+
+    function applyToGroup(group) {
+      Object.keys(group).forEach(function (key) {
+        var axis = key.charAt(0);
+        var color = pastel[axis] || 0xffffff;
+        var handle = group[key];
+        if (!handle || !handle.children) return;
+
+        handle.children.forEach(function (child) {
+          if (child.material) {
+            child.material.color.setHex(color);
+            child.material.opacity = 0.9;
+            child.material.transparent = true;
+            if (child.material.emissive) {
+              child.material.emissive.setHex(color);
+              child.material.emissiveIntensity = 0.2;
+            }
+          }
+          child.scale.multiplyScalar(0.85);
+        });
+      });
+    }
+
+    ['translate', 'rotate', 'scale'].forEach(function (mode) {
+      if (gizmo.gizmo && gizmo.gizmo[mode]) {
+        applyToGroup(gizmo.gizmo[mode]);
+      }
+    });
+  }
+}
+
+/*
  * Context menu for selected item
  */ 
 
@@ -467,6 +589,10 @@ var ViewerFloorplanner = function(blueprint3d) {
 
 var mainControls = function(blueprint3d) {
   var blueprint3d = blueprint3d;
+
+  // Stored DXF content for the import modal
+  var cadFileContent = null;
+  var cadFileName = null;
   
   // AR Server configuration - Update this to your AR server IP
   var AR_SERVER_URL = getARServerURL();
@@ -619,6 +745,163 @@ var mainControls = function(blueprint3d) {
     }, 2000);
   }
 
+  // =============================================
+  // CAD Import Functions
+  // =============================================
+
+  function openCADModal() {
+    $('#cad-import-modal').addClass('visible');
+  }
+
+  function closeCADModal() {
+    $('#cad-import-modal').removeClass('visible');
+    cadFileContent = null;
+    cadFileName = null;
+    $('#cad-file-info').hide();
+    $('#cad-summary').hide();
+    $('#cad-layers-section').hide();
+    $('#cad-error').hide();
+    $('#cad-import-confirm').prop('disabled', true);
+    $('#cad-file-input').val('');
+    $('#cad-layer-filter').val('');
+  }
+
+  function handleCADFileSelect(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+
+    cadFileName = file.name;
+    var ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext !== 'dxf') {
+      $('#cad-error').text('Unsupported file format ".' + ext + '". Please upload a .dxf file.').show();
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(event) {
+      cadFileContent = event.target.result;
+
+      // Show file info
+      $('#cad-file-name').text(cadFileName);
+      $('#cad-file-info').show();
+      $('#cad-error').hide();
+
+      // Parse and show summary
+      try {
+        var summary = CADImporter.getDxfSummary(cadFileContent);
+
+        $('#cad-total-entities').text(summary.totalEntities);
+        
+        var typesList = [];
+        for (var type in summary.entityTypes) {
+          typesList.push(type + ' (' + summary.entityTypes[type] + ')');
+        }
+        $('#cad-entity-types').text(typesList.join(', '));
+        $('#cad-summary').show();
+
+        // Show layers
+        if (summary.layers.length > 0) {
+          var layersHtml = '';
+          summary.layers.forEach(function(layer) {
+            layersHtml += '<div class="cad-layer-item">';
+            layersHtml += '<label>';
+            layersHtml += '<strong>' + escapeHtml(layer.name) + '</strong>';
+            layersHtml += ' <span class="badge">' + layer.entityCount + ' entities</span>';
+            layersHtml += '<br><small class="text-muted">' + escapeHtml(layer.entityTypes) + '</small>';
+            layersHtml += '</label>';
+            layersHtml += '</div>';
+          });
+          $('#cad-layers-list').html(layersHtml);
+          $('#cad-layers-section').show();
+        }
+
+        // Enable import button
+        $('#cad-import-confirm').prop('disabled', false);
+
+      } catch (err) {
+        $('#cad-error').text('Error reading DXF file: ' + err.message).show();
+        $('#cad-import-confirm').prop('disabled', true);
+      }
+
+      // Open the modal
+      openCADModal();
+    };
+
+    reader.onerror = function() {
+      $('#cad-error').text('Error reading file. Please try again.').show();
+    };
+
+    reader.readAsText(file);
+  }
+
+  function executeCADImport() {
+    if (!cadFileContent) {
+      $('#cad-error').text('No file loaded. Please select a DXF file.').show();
+      return;
+    }
+
+    var sourceUnit = $('#cad-unit-select').val();
+    var layerFilter = $('#cad-layer-filter').val();
+
+    try {
+      // Convert DXF to Blueprint3D JSON
+      var blueprintJson = CADImporter.dxfToBlueprint(cadFileContent, sourceUnit, layerFilter);
+      
+      // Count what we got
+      var cornerCount = Object.keys(blueprintJson.floorplan.corners).length;
+      var wallCount = blueprintJson.floorplan.walls.length;
+
+      if (cornerCount < 2 || wallCount < 1) {
+        $('#cad-error').text('The import produced too few walls (' + wallCount + ' walls, ' + cornerCount + ' corners). Try different settings.').show();
+        return;
+      }
+
+      // Load into blueprint3d — this triggers 2D → 3D propagation automatically
+      var jsonString = JSON.stringify(blueprintJson);
+      blueprint3d.model.loadSerialized(jsonString);
+
+      // Close modal and show success
+      closeCADModal();
+
+      alert('CAD file imported successfully!\n\n' +
+            'Corners: ' + cornerCount + '\n' +
+            'Walls: ' + wallCount + '\n\n' +
+            'The floorplan is now loaded in the 2D editor. ' +
+            'Click "Done" to see it in 3D.');
+
+    } catch (err) {
+      $('#cad-error').text('Import failed: ' + err.message).show();
+    }
+  }
+
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
+  function initCADImport() {
+    // Open file dialog when import button is clicked
+    $('#import-cad-btn').click(function(e) {
+      e.preventDefault();
+      $('#cad-file-input').click();
+    });
+
+    // Handle file selection
+    $('#cad-file-input').change(handleCADFileSelect);
+
+    // Modal controls
+    $('#cad-import-cancel, .cad-modal-close, .cad-modal-backdrop').click(function(e) {
+      if (e.target === this) {
+        closeCADModal();
+      }
+    });
+
+    // Import button
+    $('#cad-import-confirm').click(executeCADImport);
+  }
+
   function init() {
     $("#new").click(newDesign);
     $("#loadFile").change(loadDesign);
@@ -643,6 +926,9 @@ var mainControls = function(blueprint3d) {
       closeARModal();
     });
     
+    // CAD Import
+    initCADImport();
+    
     console.log('Main controls initialized');
   }
 
@@ -665,12 +951,16 @@ $(document).ready(function() {
   }
   var blueprint3d = new BP3D.Blueprint3d(opts);
 
+  // Expose globally so model-upload.js can access it
+  window.blueprint3d = blueprint3d;
+
   var modalEffects = new ModalEffects(blueprint3d);
   var viewerFloorplanner = new ViewerFloorplanner(blueprint3d);
   var contextMenu = new ContextMenu(blueprint3d);
   var sideMenu = new SideMenu(blueprint3d, viewerFloorplanner, modalEffects);
   var textureSelector = new TextureSelector(blueprint3d, sideMenu);        
   var cameraButtons = new CameraButtons(blueprint3d);
+  var transformGizmo = new TransformGizmo(blueprint3d);
   mainControls(blueprint3d);
 
   // This serialization format needs work

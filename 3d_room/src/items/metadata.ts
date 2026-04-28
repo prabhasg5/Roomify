@@ -10,6 +10,9 @@ module BP3D.Items {
     /** Url of the model. */
     modelUrl?: string;
 
+    /** Optional GLB/GLTF url for AR parity. */
+    glbUrl?: string;
+
     /** Resizeable or not */
     resizable?: boolean;
   }

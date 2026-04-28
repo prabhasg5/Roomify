@@ -58,10 +58,14 @@ module BP3D.Model {
           item_name: object.metadata.itemName,
           item_type: object.metadata.itemType,
           model_url: object.metadata.modelUrl,
+          glb_url: object.metadata.glbUrl,
           xpos: object.position.x,
           ypos: object.position.y,
           zpos: object.position.z,
           rotation: object.rotation.y,
+          rotation_x: object.rotation.x,
+          rotation_y: object.rotation.y,
+          rotation_z: object.rotation.z,
           scale_x: object.scale.x,
           scale_y: object.scale.y,
           scale_z: object.scale.z,
@@ -87,19 +91,25 @@ module BP3D.Model {
           itemName: item.item_name,
           resizable: item.resizable,
           itemType: item.item_type,
-          modelUrl: item.model_url
+          modelUrl: item.model_url,
+          glbUrl: item.glb_url
         };
         var scale = new THREE.Vector3(
           item.scale_x,
           item.scale_y,
           item.scale_z
         );
+        var rotation = {
+          x: item.rotation_x || 0,
+          y: item.rotation_y || item.rotation || 0,
+          z: item.rotation_z || 0
+        };
         this.scene.addItem(
           item.item_type,
           item.model_url,
           metadata,
           position,
-          item.rotation,
+          rotation,
           scale,
           item.fixed);
       });
