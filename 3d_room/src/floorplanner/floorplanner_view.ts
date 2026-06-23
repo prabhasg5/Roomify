@@ -147,8 +147,11 @@ module BP3D.Floorplanner {
     private drawEdgeLabel(edge: Model.HalfEdge) {
       var pos = edge.interiorCenter();
       var length = edge.interiorDistance();
-      if (length < 60) {
-        // dont draw labels on walls this short
+      // Skip labels on walls that are too small ON SCREEN to read. This keeps
+      // the canvas legible when a large plan is zoomed out (avoids hundreds of
+      // overlapping labels) while still labelling everything once zoomed in.
+      var pxPerCm = (this.viewmodel.convertX(100) - this.viewmodel.convertX(0)) / 100;
+      if (length * pxPerCm < 45) {
         return;
       }
       this.context.font = "normal 12px Arial";

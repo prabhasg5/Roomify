@@ -590,9 +590,12 @@ var ViewerFloorplanner = function(blueprint3d) {
 var mainControls = function(blueprint3d) {
   var blueprint3d = blueprint3d;
 
-  // Stored DXF content for the import modal
-  var cadFileContent = null;
+  // Stored state for the CAD import modal.
+  // cadEntities holds the normalized entity array (from DXF or DWG) that the
+  // shared CADImporter pipeline consumes.
   var cadFileName = null;
+  var cadEntities = null;
+  var cadHeader = null;
   
   // AR Server configuration - Update this to your AR server IP
   var AR_SERVER_URL = getARServerURL();
@@ -755,7 +758,8 @@ var mainControls = function(blueprint3d) {
 
   function closeCADModal() {
     $('#cad-import-modal').removeClass('visible');
-    cadFileContent = null;
+    cadEntities = null;
+    cadHeader = null;
     cadFileName = null;
     $('#cad-file-info').hide();
     $('#cad-summary').hide();
@@ -773,80 +777,149 @@ var mainControls = function(blueprint3d) {
     cadFileName = file.name;
     var ext = file.name.split('.').pop().toLowerCase();
 
-    if (ext !== 'dxf') {
-      $('#cad-error').text('Unsupported file format ".' + ext + '". Please upload a .dxf file.').show();
+    if (ext !== 'dxf' && ext !== 'dwg') {
+      $('#cad-error').text('Unsupported file format ".' + ext + '". Please upload a .dxf or .dwg file.').show();
+      return;
+    }
+
+    if (ext === 'dwg') {
+      readDwgFile(file);
+    } else {
+      readDxfFile(file);
+    }
+  }
+
+  // ── DXF: text read → parse → summary ──
+  function readDxfFile(file) {
+    var reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        var parsed = CADImporter.parseDxf(event.target.result);
+        cadEntities = parsed.entities;
+        cadHeader = parsed.header;
+        showCADSummary();
+      } catch (err) {
+        cadEntities = null;
+        $('#cad-file-name').text(cadFileName);
+        $('#cad-file-info').show();
+        $('#cad-error').text('Error reading DXF file: ' + err.message).show();
+        $('#cad-import-confirm').prop('disabled', true);
+        openCADModal();
+      }
+    };
+    reader.onerror = function() {
+      $('#cad-error').text('Error reading file. Please try again.').show();
+    };
+    reader.readAsText(file);
+  }
+
+  // ── DWG: binary read → libredwg (WASM) → normalized entities → summary ──
+  function readDwgFile(file) {
+    if (typeof DWGImporter === 'undefined' || !DWGImporter.isAvailable()) {
+      $('#cad-file-name').text(cadFileName);
+      $('#cad-file-info').show();
+      $('#cad-error').text('DWG support is unavailable (libredwg failed to load). You can convert the file to .dxf and import that instead.').show();
+      $('#cad-import-confirm').prop('disabled', true);
+      openCADModal();
       return;
     }
 
     var reader = new FileReader();
     reader.onload = function(event) {
-      cadFileContent = event.target.result;
-
-      // Show file info
-      $('#cad-file-name').text(cadFileName);
+      // Surface the modal immediately with a loading state — wasm parse is async.
+      $('#cad-file-name').text(cadFileName + ' (decoding DWG…)');
       $('#cad-file-info').show();
       $('#cad-error').hide();
-
-      // Parse and show summary
-      try {
-        var summary = CADImporter.getDxfSummary(cadFileContent);
-
-        $('#cad-total-entities').text(summary.totalEntities);
-        
-        var typesList = [];
-        for (var type in summary.entityTypes) {
-          typesList.push(type + ' (' + summary.entityTypes[type] + ')');
-        }
-        $('#cad-entity-types').text(typesList.join(', '));
-        $('#cad-summary').show();
-
-        // Show layers
-        if (summary.layers.length > 0) {
-          var layersHtml = '';
-          summary.layers.forEach(function(layer) {
-            layersHtml += '<div class="cad-layer-item">';
-            layersHtml += '<label>';
-            layersHtml += '<strong>' + escapeHtml(layer.name) + '</strong>';
-            layersHtml += ' <span class="badge">' + layer.entityCount + ' entities</span>';
-            layersHtml += '<br><small class="text-muted">' + escapeHtml(layer.entityTypes) + '</small>';
-            layersHtml += '</label>';
-            layersHtml += '</div>';
-          });
-          $('#cad-layers-list').html(layersHtml);
-          $('#cad-layers-section').show();
-        }
-
-        // Enable import button
-        $('#cad-import-confirm').prop('disabled', false);
-
-      } catch (err) {
-        $('#cad-error').text('Error reading DXF file: ' + err.message).show();
-        $('#cad-import-confirm').prop('disabled', true);
-      }
-
-      // Open the modal
+      $('#cad-summary').hide();
+      $('#cad-layers-section').hide();
+      $('#cad-import-confirm').prop('disabled', true);
       openCADModal();
-    };
 
+      DWGImporter.parse(event.target.result).then(function(parsed) {
+        cadEntities = parsed.entities;
+        cadHeader = parsed.header;
+        showCADSummary();
+      }).catch(function(err) {
+        cadEntities = null;
+        $('#cad-file-name').text(cadFileName);
+        $('#cad-error').text('Error reading DWG file: ' + err.message).show();
+        $('#cad-import-confirm').prop('disabled', true);
+      });
+    };
     reader.onerror = function() {
       $('#cad-error').text('Error reading file. Please try again.').show();
     };
+    reader.readAsArrayBuffer(file);
+  }
 
-    reader.readAsText(file);
+  // ── Render the entity summary, layers, and unit auto-detect, then enable import ──
+  function showCADSummary() {
+    $('#cad-file-name').text(cadFileName);
+    $('#cad-file-info').show();
+    $('#cad-error').hide();
+
+    try {
+      var summary = CADImporter.getEntitiesSummary(cadEntities);
+
+      $('#cad-total-entities').text(summary.totalEntities);
+
+      var typesList = [];
+      for (var type in summary.entityTypes) {
+        typesList.push(type + ' (' + summary.entityTypes[type] + ')');
+      }
+      $('#cad-entity-types').text(typesList.join(', '));
+      $('#cad-summary').show();
+
+      // Auto-detect source units from the header ($INSUNITS / INSUNITS).
+      var detected = CADImporter.detectUnit(cadHeader);
+      if (detected) {
+        $('#cad-unit-select').val(detected);
+      }
+
+      // Auto-fill the layer filter with detected wall layers (e.g. A-WALL).
+      var wallLayers = CADImporter.detectWallLayers(cadEntities);
+      if (wallLayers.length > 0 && !$('#cad-layer-filter').val()) {
+        $('#cad-layer-filter').val(wallLayers.join(', '));
+      }
+
+      // Show layers
+      if (summary.layers.length > 0) {
+        var layersHtml = '';
+        summary.layers.forEach(function(layer) {
+          layersHtml += '<div class="cad-layer-item">';
+          layersHtml += '<label>';
+          layersHtml += '<strong>' + escapeHtml(layer.name) + '</strong>';
+          layersHtml += ' <span class="badge">' + layer.entityCount + ' entities</span>';
+          layersHtml += '<br><small class="text-muted">' + escapeHtml(layer.entityTypes) + '</small>';
+          layersHtml += '</label>';
+          layersHtml += '</div>';
+        });
+        $('#cad-layers-list').html(layersHtml);
+        $('#cad-layers-section').show();
+      }
+
+      $('#cad-import-confirm').prop('disabled', false);
+    } catch (err) {
+      $('#cad-error').text('Error reading CAD file: ' + err.message).show();
+      $('#cad-import-confirm').prop('disabled', true);
+    }
+
+    openCADModal();
   }
 
   function executeCADImport() {
-    if (!cadFileContent) {
-      $('#cad-error').text('No file loaded. Please select a DXF file.').show();
+    if (!cadEntities) {
+      $('#cad-error').text('No file loaded. Please select a DXF or DWG file.').show();
       return;
     }
 
     var sourceUnit = $('#cad-unit-select').val();
     var layerFilter = $('#cad-layer-filter').val();
+    var collapseWalls = $('#cad-collapse-walls').is(':checked');
 
     try {
-      // Convert DXF to Blueprint3D JSON
-      var blueprintJson = CADImporter.dxfToBlueprint(cadFileContent, sourceUnit, layerFilter);
+      // Convert the parsed entities (DXF or DWG) to Blueprint3D JSON
+      var blueprintJson = CADImporter.entitiesToBlueprint(cadEntities, sourceUnit, layerFilter, { collapseWalls: collapseWalls });
       
       // Count what we got
       var cornerCount = Object.keys(blueprintJson.floorplan.corners).length;

@@ -16,6 +16,9 @@
     
     <script src="js/dxf-parser.js"></script>
     <script src="js/cad-importer.js"></script>
+    <!-- libredwg WASM bundle for binary .dwg files (loads its own .wasm on demand) -->
+    <script src="js/vendor/libredwg/libredwg-web.js"></script>
+    <script src="js/dwg-importer.js"></script>
     <script src="js/items.js"></script>
     <script src="js/ar-exporter.js"></script>
     <script src="js/example.js"></script>
@@ -300,8 +303,8 @@
 
               <!-- CAD Import Button -->
               <span class="cad-import-group">
-                <input type="file" id="cad-file-input" accept=".dxf" style="display:none">
-                <button id="import-cad-btn" class="btn btn-sm btn-info" title="Import a DXF/CAD file as floorplan">
+                <input type="file" id="cad-file-input" accept=".dxf,.dwg" style="display:none">
+                <button id="import-cad-btn" class="btn btn-sm btn-info" title="Import a DXF or DWG CAD file as floorplan">
                   <span class="glyphicon glyphicon-upload"></span>
                   Import CAD
                 </button>
@@ -369,7 +372,14 @@
                       <div class="form-group">
                         <label for="cad-layer-filter">Layer filter (leave empty for all layers):</label>
                         <input type="text" id="cad-layer-filter" class="form-control" placeholder="e.g. A-WALL, WALL">
-                        <small class="text-muted">Comma-separated layer names. Only entities on these layers will be imported.</small>
+                        <small class="text-muted">Comma-separated layer names. Only entities on these layers will be imported. Wall layers are auto-filled when detected.</small>
+                      </div>
+                      <div class="checkbox">
+                        <label>
+                          <input type="checkbox" id="cad-collapse-walls" checked>
+                          <strong>Collapse double-line walls</strong> (recommended for architectural plans)
+                        </label>
+                        <br><small class="text-muted">Merges the two parallel lines of each wall into a single centerline. Turn off for plans drawn with single-line walls.</small>
                       </div>
                     </div>
                   </div>

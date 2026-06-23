@@ -10,6 +10,14 @@ module BP3D.Model {
   /** */
   const defaultFloorPlanTolerance = 10.0;
 
+  /**
+   * Above this many corners, automatic room detection (an expensive
+   * tightest-cycle search) is skipped to keep the browser responsive. Large
+   * imported CAD plans (e.g. a full commercial floor) render their walls in
+   * 2D (with measurements) and 3D, but without auto-detected room polygons.
+   */
+  const maxCornersForRoomDetection = 150;
+
   /** 
    * A Floorplan represents a number of Walls, Corners and Rooms.
    */
@@ -46,6 +54,12 @@ module BP3D.Model {
     * url and scale attributes.
     */
     private floorTextures = {};
+
+    /**
+     * When true, newWall/newCorner skip the per-element update() so a bulk
+     * load (e.g. CAD import) can add everything and update once at the end.
+     */
+    private deferUpdate = false;
 
     /** Constructs a floorplan. */
     constructor() {
@@ -116,7 +130,9 @@ module BP3D.Model {
         scope.removeWall(wall);
       });
       this.new_wall_callbacks.fire(wall);
-      this.update();
+      if (!this.deferUpdate) {
+        this.update();
+      }
       return wall;
     }
 
@@ -229,6 +245,9 @@ module BP3D.Model {
         corners[id] = this.newCorner(corner.x, corner.y, id);
       }
       var scope = this;
+      // Bulk-load: defer the (potentially expensive) update until every wall
+      // is added, so update()/findRooms runs once instead of once per wall.
+      this.deferUpdate = true;
       floorplan.walls.forEach((wall) => {
         var newWall = scope.newWall(
           corners[wall.corner1], corners[wall.corner2]);
@@ -239,6 +258,7 @@ module BP3D.Model {
           newWall.backTexture = wall.backTexture;
         }
       });
+      this.deferUpdate = false;
 
       if ('newFloorTextures' in floorplan) {
         this.floorTextures = floorplan.newFloorTextures;
@@ -297,12 +317,25 @@ module BP3D.Model {
         wall.resetFrontBack();
       });
 
-      var roomCorners = this.findRooms(this.corners);
       this.rooms = [];
       var scope = this;
-      roomCorners.forEach((corners) => {
-        scope.rooms.push(new Room(scope, corners));
-      });
+
+      // Skip room detection on very large plans (imported CAD floors): the
+      // tightest-cycle search is too expensive and would freeze the browser.
+      // Walls still get edges via assignOrphanEdges below, so they render in
+      // 2D (with measurements) and 3D — just without room floor polygons.
+      if (this.corners.length <= maxCornersForRoomDetection) {
+        var roomCorners = this.findRooms(this.corners);
+        roomCorners.forEach((corners) => {
+          scope.rooms.push(new Room(scope, corners));
+        });
+      } else {
+        console.warn(
+          "Floorplan has " + this.corners.length + " corners (> " +
+          maxCornersForRoomDetection + "); skipping automatic room detection " +
+          "for performance. Walls are shown without room polygons.");
+      }
+
       this.assignOrphanEdges();
 
       this.updateFloorTextures();

@@ -30,9 +30,10 @@ module BP3D.Three {
     // backwards compatibility
     this.noZoom = false;
     this.zoomSpeed = 1.0;
-    // Limits to how far you can dolly in and out
+    // Limits to how far you can dolly in and out. maxDistance is large enough
+    // to frame big imported CAD floors (e.g. a ~60m commercial building).
     this.minDistance = 0;
-    this.maxDistance = 1500; //Infinity;
+    this.maxDistance = 30000; //Infinity;
 
     // Set to true to disable this control
     this.noRotate = false;

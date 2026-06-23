@@ -110,6 +110,11 @@ module BP3D.Floorplanner {
         scope.mouseleave();
       });
 
+      // Mouse-wheel zoom (essential for navigating large imported plans).
+      this.canvasElement[0].addEventListener('wheel', (event) => {
+        scope.wheel(event);
+      }, { passive: false });
+
       $(document).keyup((e) => {
         if (e.keyCode == 27) {
           scope.escapeKey();
@@ -232,6 +237,35 @@ module BP3D.Floorplanner {
       }
     }
 
+    /** Zoom the 2D view in/out around the cursor on mouse wheel. */
+    private wheel(event) {
+      event.preventDefault();
+      var delta = event.deltaY || 0;
+      // wheel up (delta < 0) zooms in
+      var factor = delta < 0 ? 1.1 : 1 / 1.1;
+
+      var offset = this.canvasElement.offset();
+      var px = event.clientX - offset.left;
+      var py = event.clientY - offset.top;
+
+      // world (cm) point currently under the cursor
+      var worldX = (px + this.originX) * this.cmPerPixel;
+      var worldY = (py + this.originY) * this.cmPerPixel;
+
+      // apply zoom (clamped so you can fit large plans but not lose the model)
+      var next = this.pixelsPerCm * factor;
+      next = Math.max(0.02, Math.min(5.0, next));
+      this.pixelsPerCm = next;
+      this.cmPerPixel = 1.0 / this.pixelsPerCm;
+      this.wallWidth = 10.0 * this.pixelsPerCm;
+
+      // keep the same world point under the cursor after zooming
+      this.originX = worldX / this.cmPerPixel - px;
+      this.originY = worldY / this.cmPerPixel - py;
+
+      this.view.draw();
+    }
+
     /** */
     private mouseup() {
       this.mouseDown = false;
@@ -259,8 +293,24 @@ module BP3D.Floorplanner {
     private reset() {
       this.resizeView();
       this.setMode(floorplannerModes.MOVE);
-      this.resetOrigin();
+      this.fitView();
       this.view.draw();
+    }
+
+    /** Auto-fit the zoom so the whole floorplan is visible, then center it. */
+    private fitView() {
+      var size = this.floorplan.getSize(); // cm, in THREE coords (x, 0, z)
+      var w = this.canvasElement.innerWidth();
+      var h = this.canvasElement.innerHeight();
+      if (size.x > 0 && size.z > 0 && w > 0 && h > 0) {
+        var margin = 0.85;
+        var ppc = Math.min((w * margin) / size.x, (h * margin) / size.z);
+        ppc = Math.max(0.02, Math.min(5.0, ppc));
+        this.pixelsPerCm = ppc;
+        this.cmPerPixel = 1.0 / this.pixelsPerCm;
+        this.wallWidth = 10.0 * this.pixelsPerCm;
+      }
+      this.resetOrigin();
     }
 
     /** */

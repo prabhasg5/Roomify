@@ -67,7 +67,9 @@ module BP3D.Three {
       THREE.ImageUtils.crossOrigin = "";
 
       domElement = scope.element.get(0) // Container
-      camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
+      // Far plane is large enough to view big imported CAD floors from the
+      // distance centerCamera() uses (≈ floorplan depth × 1.5).
+      camera = new THREE.PerspectiveCamera(45, 1, 1, 100000);
       renderer = new THREE.WebGLRenderer({
         antialias: true,
         preserveDrawingBuffer: true // required to support .toDataURL()
