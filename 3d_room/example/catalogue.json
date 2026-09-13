@@ -1,0 +1,622 @@
+{
+  "catalogue": {
+    "version": 1,
+    "generated": "2026-09-09T17:25:30.265Z",
+    "generator": "tools/build-catalogue.js",
+    "units": "cm",
+    "note": "dimensions are measured from mesh geometry; price and style are curated by hand",
+    "product_count": 21,
+    "variant_count": 27
+  },
+  "products": [
+    {
+      "id": "full-bed",
+      "name": "Full Bed",
+      "category": "bed",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/ik_nordli_full.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_nordli-bed-frame__0159270_PE315708_S4.JPG",
+          "dimensions": {
+            "width": 140,
+            "height": 100,
+            "depth": 200
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "chair",
+      "name": "Chair",
+      "category": "chair",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/gus-churchchair-whiteoak.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_Church-Chair-oak-white_1024x1024.jpg",
+          "dimensions": {
+            "width": 45.9,
+            "height": 79,
+            "depth": 51.4
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        },
+        {
+          "id": "red",
+          "label": "Red",
+          "model": "models/js/ik-ekero-orange_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_tn-orange.png",
+          "dimensions": {
+            "width": 70,
+            "height": 75,
+            "depth": 73.1
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        },
+        {
+          "id": "blue",
+          "label": "Blue",
+          "model": "models/js/ik-ekero-blue_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_ekero-blue3.png",
+          "dimensions": {
+            "width": 70,
+            "height": 75,
+            "depth": 73
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "coffee-table",
+      "name": "Coffee Table",
+      "category": "coffee_table",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "wood",
+          "label": "Wood",
+          "model": "models/js/ik-stockholmcoffee-brown.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_stockholm-coffee-table__0181245_PE332924_S4.JPG",
+          "dimensions": {
+            "width": 180.7,
+            "height": 48,
+            "depth": 60.5
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "dining-table",
+      "name": "Dining Table",
+      "category": "dining_table",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/cb-scholartable_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_scholar-dining-table.jpg",
+          "dimensions": {
+            "width": 106.1,
+            "height": 76.2,
+            "depth": 105.5
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        },
+        {
+          "id": "default-2",
+          "label": "Default 2",
+          "model": "models/js/BlakeAvenuejoshuatreecheftable.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_Screen_Shot_2014-01-28_at_6.49.33_PM.png",
+          "dimensions": {
+            "width": 188.7,
+            "height": 79.5,
+            "depth": 104.9
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "closed-door",
+      "name": "Closed Door",
+      "category": "door",
+      "style": null,
+      "price": null,
+      "placement": "in_wall_floor",
+      "item_type": 7,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/closed-door28x80_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_Screen_Shot_2014-10-27_at_8.04.12_PM.png",
+          "dimensions": {
+            "width": 97.1,
+            "height": 221.6,
+            "depth": 8
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "open-door",
+      "name": "Open Door",
+      "category": "door",
+      "style": null,
+      "price": null,
+      "placement": "in_wall_floor",
+      "item_type": 7,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/open_door.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_Screen_Shot_2014-10-27_at_8.22.46_PM.png",
+          "dimensions": {
+            "width": 97.1,
+            "height": 221.6,
+            "depth": 7.6
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "floor-lamp",
+      "name": "Floor Lamp",
+      "category": "lighting",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/ore-3legged-white_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_ore-white.png",
+          "dimensions": {
+            "width": 44.4,
+            "height": 144.3,
+            "depth": 57.8
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "media-console",
+      "name": "Media Console",
+      "category": "media_unit",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "white",
+          "label": "White",
+          "model": "models/js/cb-clapboard_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_clapboard-white-60-media-console-1.jpg",
+          "dimensions": {
+            "width": 152.4,
+            "height": 135.8,
+            "depth": 50.8
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        },
+        {
+          "id": "black",
+          "label": "Black",
+          "model": "models/js/cb-moore_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_moore-60-media-console-1.jpg",
+          "dimensions": {
+            "width": 152.8,
+            "height": 160.4,
+            "depth": 49.2
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "bedside-table",
+      "name": "Bedside table",
+      "category": "nightstand",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "shale",
+          "label": "Shale",
+          "model": "models/js/bd-shalebedside-smoke_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_Blu-Dot-Shale-Bedside-Table.jpg",
+          "dimensions": {
+            "width": 52.3,
+            "height": 52.3,
+            "depth": 47.4
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        },
+        {
+          "id": "white",
+          "label": "White",
+          "model": "models/js/cb-archnight-white_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_arch-white-oval-nightstand.jpg",
+          "dimensions": {
+            "width": 61,
+            "height": 62.3,
+            "depth": 45.7
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "blue-rug",
+      "name": "Blue Rug",
+      "category": "rug",
+      "style": null,
+      "price": null,
+      "placement": "on_floor",
+      "item_type": 8,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/cb-blue-block-60x96.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_cb-blue-block60x96.png",
+          "dimensions": {
+            "width": 152.4,
+            "height": 0.5,
+            "depth": 243.8
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "bookshelf",
+      "name": "Bookshelf",
+      "category": "shelving",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/cb-kendallbookcasewalnut_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_kendall-walnut-bookcase.jpg",
+          "dimensions": {
+            "width": 72.3,
+            "height": 184.4,
+            "depth": 38.2
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "side-table",
+      "name": "Side Table",
+      "category": "side_table",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/GUSossingtonendtable.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_Screen_Shot_2014-02-21_at_1.24.58_PM.png",
+          "dimensions": {
+            "width": 50.8,
+            "height": 46.4,
+            "depth": 51.4
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "couch",
+      "name": "Couch",
+      "category": "sofa",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/couch-1771955277196_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_couch-1771955277196.png",
+          "dimensions": {
+            "width": 111.1,
+            "height": 87.6,
+            "depth": 200.5
+          },
+          "price_delta": 0,
+          "source": "upload"
+        }
+      ]
+    },
+    {
+      "id": "sectional",
+      "name": "Sectional",
+      "category": "sofa",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "olive",
+          "label": "Olive",
+          "model": "models/js/we-crosby2piece-greenbaked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_img21o.jpg",
+          "dimensions": {
+            "width": 236.6,
+            "height": 90.7,
+            "depth": 153.2
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "sofa",
+      "name": "Sofa",
+      "category": "sofa",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "grey",
+          "label": "Grey",
+          "model": "models/js/cb-rochelle-gray_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_rochelle-sofa-3.jpg",
+          "dimensions": {
+            "width": 217.2,
+            "height": 85.1,
+            "depth": 94.4
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "sofa-2",
+      "name": "Sofa 2",
+      "category": "sofa",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/sofa-2-1773380818620_baked.js",
+          "glb": "models/glb/sofa-2-1773380818620.glb",
+          "thumbnail": "models/thumbnails/thumbnail_sofa-2-1773380818620.png",
+          "dimensions": {
+            "width": 246.8,
+            "height": 98.4,
+            "depth": 125.8
+          },
+          "price_delta": 0,
+          "source": "upload"
+        }
+      ]
+    },
+    {
+      "id": "dresser",
+      "name": "Dresser",
+      "category": "storage",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "dark-wood",
+          "label": "Dark Wood",
+          "model": "models/js/DWR_MATERA_DRESSER2.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_matera_dresser_5.png",
+          "dimensions": {
+            "width": 50.4,
+            "height": 115.6,
+            "depth": 85.1
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        },
+        {
+          "id": "white",
+          "label": "White",
+          "model": "models/js/we-narrow6white_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_img25o.jpg",
+          "dimensions": {
+            "width": 152.4,
+            "height": 71.2,
+            "depth": 51.7
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "wardrobe",
+      "name": "Wardrobe",
+      "category": "storage",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "white",
+          "label": "White",
+          "model": "models/js/ik-kivine_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_TN-ikea-kvikine.png",
+          "dimensions": {
+            "width": 120,
+            "height": 190,
+            "depth": 57
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "wooden-trunk",
+      "name": "Wooden Trunk",
+      "category": "storage",
+      "style": null,
+      "price": null,
+      "placement": "floor",
+      "item_type": 1,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/cb-tecs_baked.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_teca-storage-trunk.jpg",
+          "dimensions": {
+            "width": 45.6,
+            "height": 45.8,
+            "depth": 111.4
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "nyc-poster",
+      "name": "NYC Poster",
+      "category": "wall_art",
+      "style": null,
+      "price": null,
+      "placement": "wall",
+      "item_type": 2,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/nyc-poster2.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_nyc2.jpg",
+          "dimensions": {
+            "width": 71.1,
+            "height": 96.5,
+            "depth": 2.5
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    },
+    {
+      "id": "window",
+      "name": "Window",
+      "category": "window",
+      "style": null,
+      "price": null,
+      "placement": "in_wall",
+      "item_type": 3,
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "model": "models/js/whitewindow.js",
+          "glb": null,
+          "thumbnail": "models/thumbnails/thumbnail_window.png",
+          "dimensions": {
+            "width": 123.1,
+            "height": 170.5,
+            "depth": 14.7
+          },
+          "price_delta": 0,
+          "source": "built-in"
+        }
+      ]
+    }
+  ]
+}

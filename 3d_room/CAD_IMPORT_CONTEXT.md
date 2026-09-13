@@ -12,26 +12,26 @@ cd /Users/jayanandaprabhasmekala/Roomify/3d_room
 npm install
 ```
 
-**Start the app server** (serves example/ on http://localhost:9000 — REQUIRED for DWG,
-because the WASM can't load over file://):
+**Start dev** — tsc --watch + API server (:9000) + Vite (:5173) in one terminal. Serving over
+HTTP is REQUIRED for DWG, because the WASM can't load over file://:
 ```bash
-node model-server.js
-# then open http://localhost:9000/  (hard-refresh with Cmd+Shift+R after rebuilds)
+npm run dev
+# opens http://localhost:5173  (Vite proxies /api → :9000)
+```
+`npm start` alone (Express on :9000, no live reload, no tsc watch) still works as a fallback.
+
+**Stop:** Ctrl+C in that terminal, or:
+```bash
+pkill -f "node model-server.js"; pkill -f vite
 ```
 
-**Stop the server:**
+**Rebuild after editing any TypeScript in src/** (only needed outside `npm run dev`, which
+already watches). Outputs example/js/blueprint3d.js (gitignored):
 ```bash
-pkill -f "node model-server.js"
-```
-(or just press Ctrl+C in the terminal running it)
-
-**Rebuild after editing any TypeScript in src/** (grunt-cli's .bin shim lacks exec bit, so
-call via node). Outputs example/js/blueprint3d.js (gitignored):
-```bash
-node node_modules/grunt/bin/grunt default
+npm run build          # copies three.min.js + tsc -p tsconfig.json
 ```
 NOTE: editing files in example/js/ (cad-importer.js, dwg-importer.js, example.js) needs NO
-rebuild — they're plain JS served as-is. Only src/*.ts changes need grunt.
+rebuild — they're plain JS served as-is. Only src/*.ts changes need a build.
 
 **Generate the sample residential test plan** (→ example/sample-plans/house.dxf):
 ```bash
@@ -70,8 +70,8 @@ Upload a CAD file → draw it as a **2D floor plan with measurements** → have 
   `CAD/draw → floorplan JSON (corners + walls) → BP3D.Model.Model.loadSerialized() → 2D canvas AND 3D scene`
 - 2D and 3D are **two views of one `Floorplan` model** — loading into the model renders both.
   No extra wiring needed to "push 2D to 3D".
-- TS source in `src/`, compiled via **grunt** into `example/js/blueprint3d.js` (artifact is
-  committed and present). Build: `cd 3d_room && npm install && grunt`.
+- TS source in `src/`, compiled by **tsc** (namespace `outFile` mode) into
+  `example/js/blueprint3d.js` (gitignored artifact). Build: `cd 3d_room && npm install && npm run build`.
 
 ## Key files
 | Concern | File |
@@ -139,7 +139,7 @@ part of the flow. Fully automatic perfect extraction is not a promise.
 3. Add `$INSUNITS` auto-detect (pre-select unit dropdown, user can override).
 4. Improve wall extraction: layer-aware filtering + double-line→centerline collapse.
 5. (Optional) preserve/import DIMENSION annotations as non-editable labels.
-6. Rebuild via grunt (only if TS touched); verify in `example/index.html`.
+6. Rebuild via `npm run build` (only if TS touched); verify in the browser.
 
 ## Status log
 - 2026-06-19: Context created. Discovery complete — DXF import + 2D measurements + 2D→3D

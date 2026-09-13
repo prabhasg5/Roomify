@@ -88,13 +88,16 @@ cd 3d_room
 # Install dependencies
 npm install
 
-# Build the project
-grunt
+# Build the TypeScript bundle (example/js/blueprint3d.js)
+npm run build
 
-# Open the example in your browser
-open example/index.html
-# Or simply open 3d_room/example/index.html in your browser
+# Start dev: tsc --watch + the API server (:9000) + Vite (:5173)
+npm run dev
 ```
+
+Open http://localhost:5173. The app must be served over HTTP — `file://` blocks the
+DWG WASM loader. `npm start` alone serves the same app from Express on
+http://localhost:9000 without live reload.
 
 ### 3. Setting Up the AR Server
 
@@ -114,7 +117,7 @@ npm start
 npm run dev
 ```
 
-The AR server will be available at `https://localhost:3000`
+The AR server listens on `https://localhost:8002` (mobile/WebXR) and `http://localhost:8003` (local dev, no cert warning)
 
 ### 4. Setting Up the Python Backend (AI Services)
 
@@ -148,7 +151,7 @@ The Python backend will be available at `http://localhost:5000`
 
 ### 3D Room Designer
 
-1. **Open the Application**: Launch `3d_room/example/index.html` in a modern browser
+1. **Open the Application**: run `npm run dev` in `3d_room/` and open http://localhost:5173 (serve over HTTP, not `file://`)
 2. **Design Your Floor Plan**: 
    - Use the 2D view to draw room walls
    - Click and drag to create walls
@@ -170,7 +173,7 @@ The Python backend will be available at `http://localhost:5000`
 1. **Start the AR Server**: Ensure the AR server is running
 2. **Access on Mobile**: 
    - Connect your mobile device to the same network
-   - Navigate to `https://your-ip:3000/ar-mobile.html`
+   - Navigate to `https://your-ip:8002/ar-mobile.html`
 3. **View Your Design**:
    - Point your camera at a flat surface
    - Your room design will appear in AR
