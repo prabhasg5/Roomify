@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "none",
+    "outFile": "example/js/blueprint3d.js",
+    "sourceMap": true,
+    "declaration": false,
+    "removeComments": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "strict": false,
+    "noEmitOnError": false,
+    "downlevelIteration": true,
+    "lib": ["es5", "dom", "scripthost"]
+  },
+  "include": ["src/**/*.ts", "lib/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}
