@@ -13,6 +13,13 @@ module BP3D.Items {
     /** Optional GLB/GLTF url for AR parity. */
     glbUrl?: string;
 
+    /** Catalogue product id, e.g. "sofa". Renderer-independent identity: mesh
+     * urls change when the asset pipeline does, these do not. */
+    productId?: string;
+
+    /** Catalogue variant id within the product, e.g. "grey". */
+    variantId?: string;
+
     /** Resizeable or not */
     resizable?: boolean;
   }

@@ -360,6 +360,7 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     $("#update-floorplan").click(floorplanUpdate);
 
     initLeftMenu();
+    loadCatalogueIds();
 
     blueprint3d.three.updateWindowSize();
     handleWindowResize();
@@ -444,16 +445,42 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
 
   };
 
+  // Catalogue identity (product id + variant id) keyed by mesh url. Designs save
+  // these so a saved room survives an asset-pipeline change — mesh urls do not:
+  // the r69 .js meshes go away when the renderer loads .glb directly.
+  // ponytail: read straight from catalogue.json rather than duplicating ids into
+  // items.js — the panel gets rendered from the catalogue later and this goes away.
+  var catalogueIds = {};
+
+  function loadCatalogueIds() {
+    $.getJSON("catalogue.json", function(data) {
+      (data.products || []).forEach(function(product) {
+        (product.variants || []).forEach(function(variant) {
+          if (variant.model) {
+            catalogueIds[variant.model] = {
+              productId: product.id,
+              variantId: variant.id
+            };
+          }
+        });
+      });
+    });
+    // On failure items simply save without catalogue identity, exactly as before.
+  }
+
   // TODO: this doesn't really belong here
   function initItems() {
     $("#add-items").find(".add-item").mousedown(function(e) {
       var modelUrl = $(this).attr("model-url");
       var itemType = parseInt($(this).attr("model-type"));
+      var ids = catalogueIds[modelUrl] || {};
       var metadata = {
         itemName: $(this).attr("model-name"),
         resizable: true,
         modelUrl: modelUrl,
-        itemType: itemType
+        itemType: itemType,
+        productId: ids.productId,
+        variantId: ids.variantId
       }
 
       blueprint3d.model.scene.addItem(itemType, modelUrl, metadata);

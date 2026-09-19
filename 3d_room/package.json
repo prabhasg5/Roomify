@@ -41,6 +41,7 @@
     "dev": "concurrently -n ts,api,web -c blue,green,magenta \"npm:watch:ts\" \"node model-server.js\" \"vite\"",
     "serve": "vite",
     "check:models": "node tools/check-model-serving.mjs",
+    "check:catalogue": "node tools/check-catalogue-ids.mjs",
     "start": "node model-server.js",
     "convert": "node gltf-to-threejs-json.js"
   },

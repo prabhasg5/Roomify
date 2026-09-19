@@ -59,6 +59,8 @@ module BP3D.Model {
           item_type: object.metadata.itemType,
           model_url: object.metadata.modelUrl,
           glb_url: object.metadata.glbUrl,
+          product_id: object.metadata.productId,
+          variant_id: object.metadata.variantId,
           xpos: object.position.x,
           ypos: object.position.y,
           zpos: object.position.z,
@@ -92,7 +94,9 @@ module BP3D.Model {
           resizable: item.resizable,
           itemType: item.item_type,
           modelUrl: item.model_url,
-          glbUrl: item.glb_url
+          glbUrl: item.glb_url,
+          productId: item.product_id,
+          variantId: item.variant_id
         };
         var scale = new THREE.Vector3(
           item.scale_x,
