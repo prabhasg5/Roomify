@@ -448,12 +448,12 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
   // Catalogue identity (product id + variant id) keyed by mesh url. Designs save
   // these so a saved room survives an asset-pipeline change — mesh urls do not:
   // the r69 .js meshes go away when the renderer loads .glb directly.
-  // ponytail: read straight from catalogue.json rather than duplicating ids into
-  // items.js — the panel gets rendered from the catalogue later and this goes away.
+  // ponytail: read the catalogue rather than duplicating ids into items.js — the
+  // panel gets rendered from the catalogue later and this goes away.
   var catalogueIds = {};
 
   function loadCatalogueIds() {
-    $.getJSON("catalogue.json", function(data) {
+    function index(data) {
       (data.products || []).forEach(function(product) {
         (product.variants || []).forEach(function(variant) {
           if (variant.model) {
@@ -464,8 +464,15 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
           }
         });
       });
+    }
+    // /api/catalogue is the authority (it adds prices, and validates the file).
+    // The static file stays as the fallback for when the Python service is not
+    // up — ids are a published contract, so losing them is worse than stale
+    // prices we do not read here anyway. On both failing, items save without
+    // catalogue identity, exactly as before.
+    $.getJSON("/api/catalogue", index).fail(function() {
+      $.getJSON("catalogue.json", index);
     });
-    // On failure items simply save without catalogue identity, exactly as before.
   }
 
   // TODO: this doesn't really belong here
@@ -715,7 +722,10 @@ var mainControls = function(blueprint3d) {
     
     // Also try to save to server
     try {
-      fetch('http://localhost:8003/save-design', {
+      // Moved off ar-server.js (:8003) to the Python backend, proxied at
+      // /api/designs. ar-server still serves the design to the phone, reading
+      // the file this writes.
+      fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: designData

@@ -49,6 +49,14 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
+      // Matched in key order, so the more specific rule must come first.
+      // Cutover to the Python backend happens one path at a time (see
+      // BACKEND_REWRITE_CONTEXT.md); this is the first one.
+      // A key starting with ^ is matched as a RegExp.
+      "^/api/(catalogue|designs)": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
       // Forward backend API calls to the Express server (model upload, models).
       "/api": {
         target: "http://localhost:9000",

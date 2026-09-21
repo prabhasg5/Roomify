@@ -24,42 +24,6 @@ var ARExporter = (function() {
     }
     
     /**
-     * Save the current design to the AR server
-     */
-    function saveDesignToServer(blueprint3d, onSuccess, onError) {
-        var designData = blueprint3d.model.exportSerialized();
-        var serverUrl = getARServerURL();
-        
-        console.log('Saving design to server:', serverUrl);
-        
-        fetch(serverUrl + '/save-design', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: designData
-        })
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error('Server error: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(function(data) {
-            console.log('Design saved:', data);
-            if (data.success) {
-                onSuccess(data.arUrl, data.designUrl);
-            } else {
-                onError(new Error(data.error || 'Failed to save design'));
-            }
-        })
-        .catch(function(error) {
-            console.error('Save error:', error);
-            onError(error);
-        });
-    }
-    
-    /**
      * Export scene to GLB using a simpler approach
      * This creates a basic GLB with just the furniture positions
      */
@@ -96,7 +60,7 @@ var ARExporter = (function() {
         reader.onload = function(e) {
             var designData = e.target.result;
             
-            fetch(serverUrl + '/save-design', {
+            fetch('/api/designs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

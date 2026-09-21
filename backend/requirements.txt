@@ -1,0 +1,3 @@
+fastapi
+uvicorn
+httpx      # test client only (fastapi.testclient)

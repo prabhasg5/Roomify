@@ -68,9 +68,6 @@ const upload = multer({
     }
 });
 
-// Store the current design data (for JSON-based sharing)
-let currentDesign = null;
-
 // Upload GLB model endpoint
 app.post('/upload-model', upload.single('model'), (req, res) => {
     try {
@@ -101,40 +98,23 @@ app.post('/upload-model', upload.single('model'), (req, res) => {
     }
 });
 
-// Save design JSON endpoint
-app.post('/save-design', (req, res) => {
-    try {
-        currentDesign = req.body;
-        const timestamp = Date.now();
-        const filename = `design-${timestamp}.json`;
-        const filepath = path.join(modelsDir, filename);
-        
-        fs.writeFileSync(filepath, JSON.stringify(currentDesign, null, 2));
-        
-        const serverIP = getLocalIP();
-        const port = process.env.PORT || 8002;
-        const arUrl = `https://${serverIP}:${port}/ar-view.html?design=${filename}`;
-        
-        console.log(`Design saved: ${filename}`);
-        
-        res.json({
-            success: true,
-            designUrl: `/models/${filename}`,
-            arUrl: arUrl
-        });
-    } catch (error) {
-        console.error('Save design error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
+// Saving moved to the Python backend: POST /api/designs (see
+// BACKEND_REWRITE_CONTEXT.md). It writes design-<ms>.json into this same
+// modelsDir, which is what /current-design below reads.
 
-// Get current design endpoint
+// Get current design endpoint — the newest design on disk. This used to serve
+// an in-process variable, so a server restart silently lost the design and the
+// phone got a 404; disk is the source of truth now, and it does not care which
+// process did the writing.
 app.get('/current-design', (req, res) => {
-    if (currentDesign) {
-        res.json(currentDesign);
-    } else {
-        res.status(404).json({ error: 'No design saved' });
+    const newest = fs.readdirSync(modelsDir)
+        .filter(f => /^design-\d+\.json$/.test(f))
+        .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]))
+        .pop();
+    if (!newest) {
+        return res.status(404).json({ error: 'No design saved' });
     }
+    res.json(JSON.parse(fs.readFileSync(path.join(modelsDir, newest), 'utf8')));
 });
 
 // Get design by filename
