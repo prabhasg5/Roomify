@@ -5,24 +5,6 @@
 
 var ARExporter = (function() {
     
-    var AR_SERVER_URL = null;
-    
-    function getARServerURL() {
-        if (AR_SERVER_URL) return AR_SERVER_URL;
-        
-        var hostname = window.location.hostname;
-        // Use HTTP port 8003 for local development to avoid CORS/certificate issues
-        var port = '8003';
-        
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
-            AR_SERVER_URL = 'http://localhost:' + port;
-        } else {
-            // For network access, use HTTPS on port 8002
-            AR_SERVER_URL = 'https://' + hostname + ':8002';
-        }
-        return AR_SERVER_URL;
-    }
-    
     /**
      * Export scene to GLB using a simpler approach
      * This creates a basic GLB with just the furniture positions
@@ -145,22 +127,12 @@ var ARExporter = (function() {
         URL.revokeObjectURL(url);
     }
     
-    /**
-     * Open AR view directly
-     */
-    function openARView() {
-        var arUrl = getARServerURL() + '/ar-view.html';
-        window.open(arUrl, '_blank');
-    }
-    
     // Public API
     return {
         exportFullScene: exportFullScene,
         uploadToARServer: uploadToARServer,
         generateQRCode: generateQRCode,
-        downloadGLB: downloadGLB,
-        openARView: openARView,
-        getARServerURL: getARServerURL
+        downloadGLB: downloadGLB
     };
     
 })();
