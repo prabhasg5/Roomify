@@ -116,11 +116,17 @@ Click **"Download GLB"** to save the room design as a GLB file. You can then:
 
 ## API Endpoints
 
+> Saving moved out: the editor now POSTs designs to the Python service at `/api/designs`,
+> which writes them into this server's `models/` directory. `/current-design` reads whatever
+> is newest there, so both processes agree without talking to each other. `/current-design`
+> and `/list-models` stay here because the phone fetches them same-origin over HTTPS — see
+> [BACKEND_REWRITE_CONTEXT](../BACKEND_REWRITE_CONTEXT.md).
+
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/upload-model` | POST | Upload a GLB file |
-| `/save-design` | POST | Save design JSON |
-| `/current-design` | GET | Get latest design |
+| `/current-design` | GET | Latest design — the newest `design-*.json` in `models/` |
 | `/list-models` | GET | List all uploaded models |
 | `/models/:file` | GET | Serve model file |
 | `/cleanup` | POST | Remove old models (keeps last 10) |

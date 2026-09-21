@@ -54,12 +54,17 @@ Roomify/
 │   ├── ar_view/             # AR viewing server and mobile interface
 │   ├── src/                 # TypeScript source files
 │   └── lib/                 # Type definitions
-├── pscmr/                   # Python Backend (AI Services)
-│   ├── app.py               # Flask application
+├── backend/                 # FastAPI — catalogue, prices, saved designs
+│   └── main.py
+├── 2d_image_generation/     # Flask — AI image generation, price database
+│   ├── app.py
+│   ├── epics.db             # furniture price data
 │   ├── templates/           # HTML templates
 │   └── static/              # Static assets
-└── frontend/                # Landing page
+└── landing_page/            # Landing page
 ```
+
+Where things stand and what to read next: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 
 ---
 
@@ -119,11 +124,22 @@ npm run dev
 
 The AR server listens on `https://localhost:8002` (mobile/WebXR) and `http://localhost:8003` (local dev, no cert warning)
 
-### 4. Setting Up the Python Backend (AI Services)
+### 4. Setting Up the Python Backends
+
+There are two, for now. The **catalogue/design service** (FastAPI) is part of `npm run dev`:
 
 ```bash
-# Navigate to pscmr directory
-cd pscmr
+cd backend
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/uvicorn main:app --port 8080 --reload   # or: cd ../3d_room && npm run backend
+```
+
+The **2D image generation app** (Flask) is separate and still standalone:
+
+```bash
+# Navigate to the 2d_image_generation directory
+cd 2d_image_generation
 
 # Create a virtual environment (recommended)
 python -m venv venv
@@ -189,7 +205,7 @@ The Python backend will be available at `http://localhost:5000`
 
 ## Configuration
 
-### Environment Variables (pscmr/.env)
+### Environment Variables (2d_image_generation/.env)
 
 | Variable | Description |
 |----------|-------------|

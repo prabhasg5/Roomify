@@ -4,20 +4,36 @@ Blueprint3D fork: 2D floorplanner + Three.js 3D sharing one model, plus CAD impo
 
 ```bash
 npm install
-npm run dev      # tsc --watch + API (:9000) + Vite (:5173) → opens the app
+cd ../backend && python3 -m venv venv && venv/bin/pip install -r requirements.txt && cd -
+npm run dev      # tsc --watch + API (:9000) + FastAPI (:8080) + Vite (:5173) → opens the app
 ```
 
 Serve over HTTP, not `file://` — the DWG WASM loader needs it.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | The one you want. Watch-compiles `src/*.ts`, runs the API, serves `example/`. |
+| `npm run dev` | The one you want. All four processes wired together. |
 | `npm run build` | One-shot build → `example/js/blueprint3d.js` (gitignored). |
-| `npm start` | Express only, on :9000. No live reload. Fallback / prod-ish serving. |
+| `npm run backend` | FastAPI alone on :8080 (catalogue + design saving). |
+| `npm start` | Express alone on :9000. No live reload, **and no proxy to :8080**, so the catalogue falls back to the static file and AR design saves no-op. Use `npm run dev`. |
+| `npm run check:models` · `check:catalogue` | Regression guards — see the docs below. |
 
 `example/js/*.js` (cad-importer, dwg-importer, example, items…) is plain JS served as-is —
 no build step. Only `src/*.ts` changes need one.
 
-Docs: [PROJECT_OVERVIEW](../PROJECT_OVERVIEW.md) · [MODERNIZATION_CONTEXT](MODERNIZATION_CONTEXT.md) ·
-[CAD_IMPORT_CONTEXT](CAD_IMPORT_CONTEXT.md) · [CATALOGUE_GUIDE](CATALOGUE_GUIDE.md) ·
-[AGENT_ARCHITECTURE](AGENT_ARCHITECTURE.md) · [CODING_STYLE](CODING_STYLE.md)
+Python checks live in `backend/`: `venv/bin/python test_catalogue.py`, `test_designs.py`.
+
+## Docs
+
+Start at [PROJECT_OVERVIEW](../PROJECT_OVERVIEW.md) — it has the map and the current status.
+
+## Style, for `src/*.ts`
+
+Google JavaScript style. The parts that actually come up:
+
+- two spaces, not tabs
+- lowercase filenames, camelcase types, underscores where the type name has capitals:
+  `HalfEdge` → `half_edge.ts`
+- `/// <reference>` order: external, then other directories alphabetically, then the current
+  directory alphabetically — sometimes bent to avoid bootstrap issues. Blank line after them.
+- paths in references are **case-sensitive** on Linux/CI even though macOS forgives them

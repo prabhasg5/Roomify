@@ -1,5 +1,9 @@
 # CAD Import → 2D Floorplan (with measurements) → 3D — Working Context
 
+> **DORMANT.** DXF and DWG import both ship and work; this is the record of how, not a
+> to-do list. Read it only when changing the importer. Open issues are in
+> [PROJECT_OVERVIEW §7](../PROJECT_OVERVIEW.md) with everything else.
+
 ## ▶ RUNBOOK / COMMANDS (quick reference)
 
 All commands run from the `3d_room/` directory:
