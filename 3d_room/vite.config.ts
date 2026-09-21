@@ -53,7 +53,7 @@ export default defineConfig({
       // Cutover to the Python backend happens one path at a time (see
       // BACKEND_REWRITE_CONTEXT.md); this is the first one.
       // A key starting with ^ is matched as a RegExp.
-      "^/api/(catalogue|designs)": {
+      "^/api/(catalogue|designs|network-info)": {
         target: "http://localhost:8080",
         changeOrigin: true,
       },

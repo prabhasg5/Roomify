@@ -5,17 +5,18 @@ Blueprint3D fork: 2D floorplanner + Three.js 3D sharing one model, plus CAD impo
 ```bash
 npm install
 cd ../backend && python3 -m venv venv && venv/bin/pip install -r requirements.txt && cd -
-npm run dev      # tsc --watch + API (:9000) + FastAPI (:8080) + Vite (:5173) → opens the app
+npm run dev      # tsc --watch + API (:9000) + FastAPI (:8080 + AR on https :8002) + Vite (:5173)
 ```
 
 Serve over HTTP, not `file://` — the DWG WASM loader needs it.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | The one you want. All four processes wired together. |
+| `npm run dev` | The one you want. All five processes wired together. |
 | `npm run build` | One-shot build → `example/js/blueprint3d.js` (gitignored). |
-| `npm run backend` | FastAPI alone on :8080 (catalogue + design saving). |
-| `npm start` | Express alone on :9000. No live reload, **and no proxy to :8080**, so the catalogue falls back to the static file and AR design saves no-op. Use `npm run dev`. |
+| `npm run backend` | FastAPI alone on :8080 — catalogue, designs, and the AR pages over plain HTTP. |
+| `npm run ar` | The same app over HTTPS on :8002 with `ar_view/`'s cert. This is the one the phone talks to; WebXR needs TLS, and uvicorn does one protocol per process. |
+| `npm start` | Express alone on :9000. No live reload, **and no proxy to :8080**, so the catalogue falls back to the static file and both AR design saving and the QR code's network lookup no-op. Use `npm run dev`. |
 | `npm run check:models` · `check:catalogue` | Regression guards — see the docs below. |
 
 `example/js/*.js` (cad-importer, dwg-importer, example, items…) is plain JS served as-is —

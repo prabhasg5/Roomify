@@ -1,6 +1,11 @@
 /**
- * AR Server for Roomify
- * Handles GLB model uploads and serves the AR view
+ * AR Server for Roomify — SUPERSEDED, kept only until the phone test signs off.
+ *
+ * backend/main.py serves every one of these endpoints, on the same paths, plus
+ * ar_view/ itself over HTTPS (`npm run ar`). Nothing references this file. It
+ * binds :8002, so it cannot run alongside the Python server — that is the point.
+ * Delete it, ar_view/package.json and ar_view/node_modules once a real phone has
+ * loaded a design from https://<ip>:8002. See BACKEND_REWRITE_CONTEXT.md.
  */
 
 const express = require('express');

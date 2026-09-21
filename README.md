@@ -51,10 +51,10 @@ This is the gap **Roomify** addresses.
 Roomify/
 ├── 3d_room/                 # 3D Room Designer & AR View
 │   ├── example/             # Main 3D room designer interface
-│   ├── ar_view/             # AR viewing server and mobile interface
+│   ├── ar_view/             # AR pages (served by backend/ over HTTPS) + its TLS cert
 │   ├── src/                 # TypeScript source files
 │   └── lib/                 # Type definitions
-├── backend/                 # FastAPI — catalogue, prices, saved designs
+├── backend/                 # FastAPI — catalogue, prices, designs, AR serving
 │   └── main.py
 ├── 2d_image_generation/     # Flask — AI image generation, price database
 │   ├── app.py
@@ -96,7 +96,7 @@ npm install
 # Build the TypeScript bundle (example/js/blueprint3d.js)
 npm run build
 
-# Start dev: tsc --watch + the API server (:9000) + Vite (:5173)
+# Start dev: tsc --watch + API (:9000) + FastAPI (:8080, and AR over https :8002) + Vite (:5173)
 npm run dev
 ```
 
@@ -104,29 +104,25 @@ Open http://localhost:5173. The app must be served over HTTP — `file://` block
 DWG WASM loader. `npm start` alone serves the same app from Express on
 http://localhost:9000 without live reload.
 
-### 3. Setting Up the AR Server
+### 3. The AR view
+
+There is no separate AR server any more — the FastAPI backend serves `3d_room/ar_view/`
+over HTTPS, which `npm run dev` starts for you on `https://<your-ip>:8002`. WebXR requires
+HTTPS, and the checked-in self-signed certificate (`3d_room/ar_view/cert.pem`, valid to
+Feb 2035) is what it uses. To regenerate it:
 
 ```bash
-# Navigate to ar_view directory
 cd 3d_room/ar_view
-
-# Install dependencies
-npm install
-
-# Generate SSL certificates for HTTPS (required for AR on mobile)
-npm run generate-certs
-
-# Start the AR server
-npm start
-# Or for development with auto-reload:
-npm run dev
+openssl req -nodes -new -x509 -keyout key.pem -out cert.pem -days 3650 -subj '/CN=localhost'
 ```
 
-The AR server listens on `https://localhost:8002` (mobile/WebXR) and `http://localhost:8003` (local dev, no cert warning)
+Phone and computer must be on the same Wi-Fi; accept the certificate warning on the phone.
+The same pages are on `http://localhost:8080` for desktop testing, without the warning.
 
 ### 4. Setting Up the Python Backends
 
-There are two, for now. The **catalogue/design service** (FastAPI) is part of `npm run dev`:
+There are two, for now. The **catalogue / design / AR service** (FastAPI) is part of
+`npm run dev`:
 
 ```bash
 cd backend
@@ -186,7 +182,7 @@ The Python backend will be available at `http://localhost:5000`
 
 ### AR View (Mobile)
 
-1. **Start the AR Server**: Ensure the AR server is running
+1. **Start the servers**: `npm run dev` in `3d_room/` (the AR pages are served over HTTPS on :8002)
 2. **Access on Mobile**: 
    - Connect your mobile device to the same network
    - Navigate to `https://your-ip:8002/ar-mobile.html`

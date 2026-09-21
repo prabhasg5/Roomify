@@ -96,11 +96,11 @@
     </div>
 
     <!-- Same Three.js as original editor - served through AR server for CORS -->
-    <script src="http://localhost:8003/three/three.min.js"></script>
+    <script src="/three/three.min.js"></script>
     
     <script>
-        var DESIGN_URL = 'http://localhost:8003/current-design';
-        var AR_SERVER = 'http://localhost:8003';
+        var DESIGN_URL = '/current-design';
+        var AR_SERVER = window.location.origin;
         
         var scene, camera, renderer;
         var roomGroup;

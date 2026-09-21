@@ -630,19 +630,6 @@ var mainControls = function(blueprint3d) {
   var cadFileName = null;
   var cadEntities = null;
   var cadHeader = null;
-  
-  // AR Server configuration - Update this to your AR server IP
-  var AR_SERVER_URL = getARServerURL();
-  
-  function getARServerURL() {
-    // Try to detect the server URL automatically
-    // The AR server runs on port 8002
-    var hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'https://localhost:8002';
-    }
-    return 'https://' + hostname + ':8002';
-  }
 
   function newDesign() {
     blueprint3d.model.loadSerialized('{"floorplan":{"corners":{"f90da5e3-9e0e-eba7-173d-eb0b071e838e":{"x":204.85099999999989,"y":289.052},"da026c08-d76a-a944-8e7b-096b752da9ed":{"x":672.2109999999999,"y":289.052},"4e3d65cb-54c0-0681-28bf-bddcc7bdb571":{"x":672.2109999999999,"y":-178.308},"71d4f128-ae80-3d58-9bd2-711c6ce6cdf2":{"x":204.85099999999989,"y":-178.308}},"walls":[{"corner1":"71d4f128-ae80-3d58-9bd2-711c6ce6cdf2","corner2":"f90da5e3-9e0e-eba7-173d-eb0b071e838e","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"f90da5e3-9e0e-eba7-173d-eb0b071e838e","corner2":"da026c08-d76a-a944-8e7b-096b752da9ed","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"da026c08-d76a-a944-8e7b-096b752da9ed","corner2":"4e3d65cb-54c0-0681-28bf-bddcc7bdb571","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"4e3d65cb-54c0-0681-28bf-bddcc7bdb571","corner2":"71d4f128-ae80-3d58-9bd2-711c6ce6cdf2","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}}],"wallTextures":[],"floorTextures":{},"newFloorTextures":{}},"items":[]}');
@@ -682,8 +669,9 @@ var mainControls = function(blueprint3d) {
     var itemCount = design.items ? design.items.length : 0;
     console.log('Items in design:', itemCount);
     
-    // Fetch real network IP from AR server
-    fetch('http://localhost:8003/network-info')
+    // Same-origin through the Vite proxy — the backend that answers this is the
+    // one that serves the AR pages, so the IP and ports it reports are its own.
+    fetch('/api/network-info')
       .then(function(response) { return response.json(); })
       .then(function(networkInfo) {
         showARExportDialog(itemCount, designData, networkInfo);
@@ -694,13 +682,13 @@ var mainControls = function(blueprint3d) {
         showARExportDialog(itemCount, designData, {
           ip: 'YOUR_IP',
           arUrl: 'https://YOUR_IP:8002/ar-mobile.html',
-          localUrl: 'http://localhost:8003/ar-mobile.html'
+          localUrl: 'http://localhost:8080/ar-mobile.html'
         });
       });
   }
   
   function showARExportDialog(itemCount, designData, networkInfo) {
-    var localUrl = networkInfo.localUrl || 'http://localhost:8003/ar-mobile.html';
+    var localUrl = networkInfo.localUrl || 'http://localhost:8080/ar-mobile.html';
     var mobileUrl = networkInfo.arUrl || 'https://' + networkInfo.ip + ':8002/ar-mobile.html';
     
     // Show modal with link
@@ -722,9 +710,8 @@ var mainControls = function(blueprint3d) {
     
     // Also try to save to server
     try {
-      // Moved off ar-server.js (:8003) to the Python backend, proxied at
-      // /api/designs. ar-server still serves the design to the phone, reading
-      // the file this writes.
+      // The Python backend both stores the design and serves it to the phone
+      // from /current-design.
       fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

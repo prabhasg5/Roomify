@@ -2,50 +2,45 @@
 
 This module allows you to view your 3D room designs in Augmented Reality on your mobile device.
 
+**This directory has no server of its own.** The pages here are served by the FastAPI
+backend (`backend/main.py`) over HTTPS, on the certificate checked in beside them.
+
 ## How It Works
 
 1. **Design your room** in the 3D editor with furniture
-2. **Export to AR** - The scene is converted to GLB format and uploaded to the AR server
+2. **Export to AR** — the design is POSTed to `/api/designs` and written into `models/`
 3. **Scan QR code** or enter the URL on your mobile device
-4. **View in AR** - Place your room design in the real world!
+4. **View in AR** — `ar-mobile.html` fetches `/current-design` same-origin, loads each
+   item's GLB from `/glb`, and places it with WebXR hit-testing
 
 ## Setup Instructions
 
-### 1. Install Dependencies
+### 1. Start the servers
 
 ```bash
-cd 3d_room/ar_view
-npm install
+cd 3d_room
+npm run dev          # tsc + Express :9000 + FastAPI :8080 + AR https :8002 + Vite :5173
 ```
 
-### 2. Generate SSL Certificates
+`npm run ar` alone is the AR half: `uvicorn main:app --host 0.0.0.0 --port 8002
+--ssl-keyfile key.pem --ssl-certfile cert.pem`. uvicorn serves one protocol per process, so
+:8080 (plain HTTP, desktop and the Vite proxy) and :8002 (HTTPS, the phone) are two
+processes over the same app.
 
-AR requires HTTPS. Generate self-signed certificates:
+- Mobile: `https://YOUR_IP:8002/ar-mobile.html` — the QR code carries this
+- Desktop: `http://localhost:8080/ar-mobile.html` — same pages, no certificate warning
+
+### 2. Certificates
+
+`cert.pem` / `key.pem` are checked in and valid to **Feb 2035** — nothing to do. To
+regenerate:
 
 ```bash
-# Generate certificates (valid for 365 days)
-openssl req -nodes -new -x509 -keyout key.pem -out cert.pem -days 365 -subj '/CN=localhost'
+openssl req -nodes -new -x509 -keyout key.pem -out cert.pem -days 3650 -subj '/CN=localhost'
 ```
 
-### 3. Start the AR Server
-
-```bash
-npm start
-```
-
-The server will display:
-- Local URL: `https://localhost:8002`
-- Network URL: `https://YOUR_IP:8002` (use this on mobile)
-
-### 4. Start the 3D Room Editor
-
-In a separate terminal:
-```bash
-cd 3d_room/example
-python3 -m http.server 8000
-```
-
-Or use any static file server.
+`ar_view/` is served whole, so the server 404s `/key.pem` and `/cert.pem` by name — but a
+private key in a repo is still a private key: regenerate it if this ever leaves a LAN.
 
 ## Using AR
 
@@ -75,18 +70,25 @@ Click **"Download GLB"** to save the room design as a GLB file. You can then:
 ### Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   3D Editor     │────▶│   AR Server     │────▶│  Mobile AR      │
-│   (Desktop)     │     │   (Node.js)     │     │  (model-viewer) │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-     Browser              HTTPS:8002              WebXR/ARCore
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   3D Editor     │────▶│  backend/main.py │────▶│  Mobile AR      │
+│   (Desktop)     │ POST│    (FastAPI)     │ GET │  (WebXR)        │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+   Vite :5173            :8080 http           https :8002
+   /api/designs          :8002 https          /ar-mobile.html
+                         designs land in ar_view/models/
 ```
+
+The phone fetches everything **same-origin over HTTPS** — that is why these endpoints could
+not sit behind the Vite dev proxy, and why serving these pages had to move to Python for the
+design endpoints to follow.
 
 ### Files
 
-- `ar-server.js` - Express server handling GLB uploads and serving AR view
-- `ar-view.html` - Mobile-friendly AR viewer using model-viewer
-- `package.json` - Node.js dependencies
+- `ar-mobile.html` — the real AR viewer: WebXR `immersive-ar` + hit-testing
+- `ar-view.html` — model-viewer fallback viewer
+- `models/` — saved designs (`design-<ms>.json`) and uploaded GLBs
+- `cert.pem` / `key.pem` — the TLS keypair uvicorn is started with
 
 ### Client-side
 
@@ -102,7 +104,8 @@ Click **"Download GLB"** to save the room design as a GLB file. You can then:
 ### "Connection refused" error
 - Make sure mobile and computer are on the same WiFi
 - Check firewall settings (port 8002 must be open)
-- Verify the AR server is running
+- Verify `npm run ar` (or `npm run dev`) is running, and that the IP in the QR code is the
+  one `curl localhost:8080/api/network-info` reports
 
 ### "Certificate error" on mobile
 - This is expected with self-signed certificates
@@ -116,20 +119,20 @@ Click **"Download GLB"** to save the room design as a GLB file. You can then:
 
 ## API Endpoints
 
-> Saving moved out: the editor now POSTs designs to the Python service at `/api/designs`,
-> which writes them into this server's `models/` directory. `/current-design` reads whatever
-> is newest there, so both processes agree without talking to each other. `/current-design`
-> and `/list-models` stay here because the phone fetches them same-origin over HTTPS — see
-> [BACKEND_REWRITE_CONTEXT](../BACKEND_REWRITE_CONTEXT.md).
-
+> All of these are served by `backend/main.py` — see
+> [BACKEND_REWRITE_CONTEXT](../BACKEND_REWRITE_CONTEXT.md). The paths are unchanged from the
+> Express server they replaced, because the AR pages were not rewritten.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/upload-model` | POST | Upload a GLB file |
+| `/api/designs` | POST | Save a design (the editor; validated, written to `models/`) |
 | `/current-design` | GET | Latest design — the newest `design-*.json` in `models/` |
-| `/list-models` | GET | List all uploaded models |
-| `/models/:file` | GET | Serve model file |
+| `/design/:file` | GET | One design by name |
+| `/upload-model` | POST | Upload a GLB file (100MB max, `.glb`/`.gltf` only) |
+| `/list-models` | GET | List uploaded models, newest first |
 | `/cleanup` | POST | Remove old models (keeps last 10) |
+| `/api/network-info` | GET | LAN IP + ports for the QR code |
+| `/models` `/glb` `/js-models` `/three` | GET | Static: designs + uploads, and the workspace's own GLB / Three.js JSON / script folders, so both views read the same files |
 
 ## Browser Compatibility
 
