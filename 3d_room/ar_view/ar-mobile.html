@@ -647,13 +647,19 @@
                 
                 // Request AR session
                 xrSession = await navigator.xr.requestSession('immersive-ar', {
-                    requiredFeatures: ['hit-test', 'local-floor'],
-                    optionalFeatures: ['dom-overlay'],
+                    requiredFeatures: ['hit-test'],
+                    optionalFeatures: ['local-floor', 'dom-overlay'],
                     domOverlay: { root: document.getElementById('ar-overlay') }
                 });
                 
                 xrSession.addEventListener('end', onSessionEnd);
                 
+                // ponytail: immersive-ar only guarantees 'viewer' and 'local'. ARCore rejects
+                // local-floor as a REQUIRED feature ("session configuration is not supported"),
+                // and three r128 defaults its reference space to local-floor, so it must be told
+                // 'local' explicitly or setSession re-requests the space we just stopped requiring.
+                // Placement is driven by hit-test poses, so a floor-relative origin buys nothing.
+                arRenderer.xr.setReferenceSpaceType('local');
                 await arRenderer.xr.setSession(xrSession);
                 
                 // Show AR UI
@@ -692,6 +698,8 @@
                     session.requestHitTestSource({ space: viewerSpace }).then(source => {
                         hitTestSource = source;
                     });
+                }).catch(err => {
+                    setARStatus('Hit-test unavailable: ' + err.message);
                 });
                 hitTestSourceRequested = true;
             }
