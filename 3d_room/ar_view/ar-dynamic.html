@@ -96,11 +96,11 @@
     </div>
 
     <!-- Same Three.js as original editor - served through AR server for CORS -->
-    <script src="http://localhost:8003/three/three.min.js"></script>
+    <script src="/three/three.min.js"></script>
     
     <script>
-        var DESIGN_URL = 'http://localhost:8003/current-design';
-        var AR_SERVER = 'http://localhost:8003';
+        var DESIGN_URL = '/current-design';
+        var AR_SERVER = window.location.origin;
         
         var scene, camera, renderer;
         var roomGroup;
@@ -295,9 +295,9 @@
             for (var i = 0; i < items.length; i++) {
                 (function(index) {
                     var item = items[index];
-                    // Convert model URL to use AR server's proxied path
+                    // Convert model URL to the same-origin path the backend serves
                     // Original: "models/js/ik-ekero-orange_baked.js"
-                    // Proxied:  "http://localhost:8003/js-models/ik-ekero-orange_baked.js"
+                    // Served:   "/js-models/ik-ekero-orange_baked.js"
                     var modelFile = item.model_url.replace('models/js/', '');
                     var modelUrl = AR_SERVER + '/js-models/' + modelFile;
                     var itemDiv = document.getElementById('item-' + index);

@@ -360,6 +360,7 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     $("#update-floorplan").click(floorplanUpdate);
 
     initLeftMenu();
+    loadCatalogueIds();
 
     blueprint3d.three.updateWindowSize();
     handleWindowResize();
@@ -444,16 +445,49 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
 
   };
 
+  // Catalogue identity (product id + variant id) keyed by mesh url. Designs save
+  // these so a saved room survives an asset-pipeline change — mesh urls do not:
+  // the r69 .js meshes go away when the renderer loads .glb directly.
+  // ponytail: read the catalogue rather than duplicating ids into items.js — the
+  // panel gets rendered from the catalogue later and this goes away.
+  var catalogueIds = {};
+
+  function loadCatalogueIds() {
+    function index(data) {
+      (data.products || []).forEach(function(product) {
+        (product.variants || []).forEach(function(variant) {
+          if (variant.model) {
+            catalogueIds[variant.model] = {
+              productId: product.id,
+              variantId: variant.id
+            };
+          }
+        });
+      });
+    }
+    // /api/catalogue is the authority (it adds prices, and validates the file).
+    // The static file stays as the fallback for when the Python service is not
+    // up — ids are a published contract, so losing them is worse than stale
+    // prices we do not read here anyway. On both failing, items save without
+    // catalogue identity, exactly as before.
+    $.getJSON("/api/catalogue", index).fail(function() {
+      $.getJSON("catalogue.json", index);
+    });
+  }
+
   // TODO: this doesn't really belong here
   function initItems() {
     $("#add-items").find(".add-item").mousedown(function(e) {
       var modelUrl = $(this).attr("model-url");
       var itemType = parseInt($(this).attr("model-type"));
+      var ids = catalogueIds[modelUrl] || {};
       var metadata = {
         itemName: $(this).attr("model-name"),
         resizable: true,
         modelUrl: modelUrl,
-        itemType: itemType
+        itemType: itemType,
+        productId: ids.productId,
+        variantId: ids.variantId
       }
 
       blueprint3d.model.scene.addItem(itemType, modelUrl, metadata);
@@ -596,19 +630,6 @@ var mainControls = function(blueprint3d) {
   var cadFileName = null;
   var cadEntities = null;
   var cadHeader = null;
-  
-  // AR Server configuration - Update this to your AR server IP
-  var AR_SERVER_URL = getARServerURL();
-  
-  function getARServerURL() {
-    // Try to detect the server URL automatically
-    // The AR server runs on port 8002
-    var hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'https://localhost:8002';
-    }
-    return 'https://' + hostname + ':8002';
-  }
 
   function newDesign() {
     blueprint3d.model.loadSerialized('{"floorplan":{"corners":{"f90da5e3-9e0e-eba7-173d-eb0b071e838e":{"x":204.85099999999989,"y":289.052},"da026c08-d76a-a944-8e7b-096b752da9ed":{"x":672.2109999999999,"y":289.052},"4e3d65cb-54c0-0681-28bf-bddcc7bdb571":{"x":672.2109999999999,"y":-178.308},"71d4f128-ae80-3d58-9bd2-711c6ce6cdf2":{"x":204.85099999999989,"y":-178.308}},"walls":[{"corner1":"71d4f128-ae80-3d58-9bd2-711c6ce6cdf2","corner2":"f90da5e3-9e0e-eba7-173d-eb0b071e838e","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"f90da5e3-9e0e-eba7-173d-eb0b071e838e","corner2":"da026c08-d76a-a944-8e7b-096b752da9ed","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"da026c08-d76a-a944-8e7b-096b752da9ed","corner2":"4e3d65cb-54c0-0681-28bf-bddcc7bdb571","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"4e3d65cb-54c0-0681-28bf-bddcc7bdb571","corner2":"71d4f128-ae80-3d58-9bd2-711c6ce6cdf2","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}}],"wallTextures":[],"floorTextures":{},"newFloorTextures":{}},"items":[]}');
@@ -648,8 +669,9 @@ var mainControls = function(blueprint3d) {
     var itemCount = design.items ? design.items.length : 0;
     console.log('Items in design:', itemCount);
     
-    // Fetch real network IP from AR server
-    fetch('http://localhost:8003/network-info')
+    // Same-origin through the Vite proxy — the backend that answers this is the
+    // one that serves the AR pages, so the IP and ports it reports are its own.
+    fetch('/api/network-info')
       .then(function(response) { return response.json(); })
       .then(function(networkInfo) {
         showARExportDialog(itemCount, designData, networkInfo);
@@ -660,13 +682,13 @@ var mainControls = function(blueprint3d) {
         showARExportDialog(itemCount, designData, {
           ip: 'YOUR_IP',
           arUrl: 'https://YOUR_IP:8002/ar-mobile.html',
-          localUrl: 'http://localhost:8003/ar-mobile.html'
+          localUrl: 'http://localhost:8080/ar-mobile.html'
         });
       });
   }
   
   function showARExportDialog(itemCount, designData, networkInfo) {
-    var localUrl = networkInfo.localUrl || 'http://localhost:8003/ar-mobile.html';
+    var localUrl = networkInfo.localUrl || 'http://localhost:8080/ar-mobile.html';
     var mobileUrl = networkInfo.arUrl || 'https://' + networkInfo.ip + ':8002/ar-mobile.html';
     
     // Show modal with link
@@ -688,7 +710,9 @@ var mainControls = function(blueprint3d) {
     
     // Also try to save to server
     try {
-      fetch('http://localhost:8003/save-design', {
+      // The Python backend both stores the design and serves it to the phone
+      // from /current-design.
+      fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: designData

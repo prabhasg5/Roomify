@@ -5,60 +5,6 @@
 
 var ARExporter = (function() {
     
-    var AR_SERVER_URL = null;
-    
-    function getARServerURL() {
-        if (AR_SERVER_URL) return AR_SERVER_URL;
-        
-        var hostname = window.location.hostname;
-        // Use HTTP port 8003 for local development to avoid CORS/certificate issues
-        var port = '8003';
-        
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
-            AR_SERVER_URL = 'http://localhost:' + port;
-        } else {
-            // For network access, use HTTPS on port 8002
-            AR_SERVER_URL = 'https://' + hostname + ':8002';
-        }
-        return AR_SERVER_URL;
-    }
-    
-    /**
-     * Save the current design to the AR server
-     */
-    function saveDesignToServer(blueprint3d, onSuccess, onError) {
-        var designData = blueprint3d.model.exportSerialized();
-        var serverUrl = getARServerURL();
-        
-        console.log('Saving design to server:', serverUrl);
-        
-        fetch(serverUrl + '/save-design', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: designData
-        })
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error('Server error: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(function(data) {
-            console.log('Design saved:', data);
-            if (data.success) {
-                onSuccess(data.arUrl, data.designUrl);
-            } else {
-                onError(new Error(data.error || 'Failed to save design'));
-            }
-        })
-        .catch(function(error) {
-            console.error('Save error:', error);
-            onError(error);
-        });
-    }
-    
     /**
      * Export scene to GLB using a simpler approach
      * This creates a basic GLB with just the furniture positions
@@ -96,7 +42,7 @@ var ARExporter = (function() {
         reader.onload = function(e) {
             var designData = e.target.result;
             
-            fetch(serverUrl + '/save-design', {
+            fetch('/api/designs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -181,22 +127,12 @@ var ARExporter = (function() {
         URL.revokeObjectURL(url);
     }
     
-    /**
-     * Open AR view directly
-     */
-    function openARView() {
-        var arUrl = getARServerURL() + '/ar-view.html';
-        window.open(arUrl, '_blank');
-    }
-    
     // Public API
     return {
         exportFullScene: exportFullScene,
         uploadToARServer: uploadToARServer,
         generateQRCode: generateQRCode,
-        downloadGLB: downloadGLB,
-        openARView: openARView,
-        getARServerURL: getARServerURL
+        downloadGLB: downloadGLB
     };
     
 })();

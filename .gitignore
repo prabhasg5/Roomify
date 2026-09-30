@@ -76,3 +76,11 @@ htmlcov/
 .env.local
 .env.*.local
 *.env
+
+# Working-context docs — local only, README.md stays tracked
+*.md
+!README.md
+
+# Local upload / debug output (model-server.js)
+3d_room/uploads/
+3d_room/uploads-debug/

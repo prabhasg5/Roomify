@@ -51,15 +51,20 @@ This is the gap **Roomify** addresses.
 Roomify/
 ├── 3d_room/                 # 3D Room Designer & AR View
 │   ├── example/             # Main 3D room designer interface
-│   ├── ar_view/             # AR viewing server and mobile interface
+│   ├── ar_view/             # AR pages (served by backend/ over HTTPS) + its TLS cert
 │   ├── src/                 # TypeScript source files
 │   └── lib/                 # Type definitions
-├── pscmr/                   # Python Backend (AI Services)
-│   ├── app.py               # Flask application
+├── backend/                 # FastAPI — catalogue, prices, designs, AR serving
+│   └── main.py
+├── 2d_image_generation/     # Flask — AI image generation, price database
+│   ├── app.py
+│   ├── epics.db             # furniture price data
 │   ├── templates/           # HTML templates
 │   └── static/              # Static assets
-└── frontend/                # Landing page
+└── landing_page/            # Landing page
 ```
+
+Where things stand and what to read next: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 
 ---
 
@@ -88,39 +93,49 @@ cd 3d_room
 # Install dependencies
 npm install
 
-# Build the project
-grunt
+# Build the TypeScript bundle (example/js/blueprint3d.js)
+npm run build
 
-# Open the example in your browser
-open example/index.html
-# Or simply open 3d_room/example/index.html in your browser
-```
-
-### 3. Setting Up the AR Server
-
-```bash
-# Navigate to ar_view directory
-cd 3d_room/ar_view
-
-# Install dependencies
-npm install
-
-# Generate SSL certificates for HTTPS (required for AR on mobile)
-npm run generate-certs
-
-# Start the AR server
-npm start
-# Or for development with auto-reload:
+# Start dev: tsc --watch + API (:9000) + FastAPI (:8080, and AR over https :8002) + Vite (:5173)
 npm run dev
 ```
 
-The AR server will be available at `https://localhost:3000`
+Open http://localhost:5173. The app must be served over HTTP — `file://` blocks the
+DWG WASM loader. `npm start` alone serves the same app from Express on
+http://localhost:9000 without live reload.
 
-### 4. Setting Up the Python Backend (AI Services)
+### 3. The AR view
+
+There is no separate AR server any more — the FastAPI backend serves `3d_room/ar_view/`
+over HTTPS, which `npm run dev` starts for you on `https://<your-ip>:8002`. WebXR requires
+HTTPS, and the checked-in self-signed certificate (`3d_room/ar_view/cert.pem`, valid to
+Feb 2035) is what it uses. To regenerate it:
 
 ```bash
-# Navigate to pscmr directory
-cd pscmr
+cd 3d_room/ar_view
+openssl req -nodes -new -x509 -keyout key.pem -out cert.pem -days 3650 -subj '/CN=localhost'
+```
+
+Phone and computer must be on the same Wi-Fi; accept the certificate warning on the phone.
+The same pages are on `http://localhost:8080` for desktop testing, without the warning.
+
+### 4. Setting Up the Python Backends
+
+There are two, for now. The **catalogue / design / AR service** (FastAPI) is part of
+`npm run dev`:
+
+```bash
+cd backend
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/uvicorn main:app --port 8080 --reload   # or: cd ../3d_room && npm run backend
+```
+
+The **2D image generation app** (Flask) is separate and still standalone:
+
+```bash
+# Navigate to the 2d_image_generation directory
+cd 2d_image_generation
 
 # Create a virtual environment (recommended)
 python -m venv venv
@@ -148,7 +163,7 @@ The Python backend will be available at `http://localhost:5000`
 
 ### 3D Room Designer
 
-1. **Open the Application**: Launch `3d_room/example/index.html` in a modern browser
+1. **Open the Application**: run `npm run dev` in `3d_room/` and open http://localhost:5173 (serve over HTTP, not `file://`)
 2. **Design Your Floor Plan**: 
    - Use the 2D view to draw room walls
    - Click and drag to create walls
@@ -167,10 +182,10 @@ The Python backend will be available at `http://localhost:5000`
 
 ### AR View (Mobile)
 
-1. **Start the AR Server**: Ensure the AR server is running
+1. **Start the servers**: `npm run dev` in `3d_room/` (the AR pages are served over HTTPS on :8002)
 2. **Access on Mobile**: 
    - Connect your mobile device to the same network
-   - Navigate to `https://your-ip:3000/ar-mobile.html`
+   - Navigate to `https://your-ip:8002/ar-mobile.html`
 3. **View Your Design**:
    - Point your camera at a flat surface
    - Your room design will appear in AR
@@ -186,7 +201,7 @@ The Python backend will be available at `http://localhost:5000`
 
 ## Configuration
 
-### Environment Variables (pscmr/.env)
+### Environment Variables (2d_image_generation/.env)
 
 | Variable | Description |
 |----------|-------------|

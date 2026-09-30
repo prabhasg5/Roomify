@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+python-multipart   # /upload-model (multipart form)
+httpx      # test client only (fastapi.testclient)

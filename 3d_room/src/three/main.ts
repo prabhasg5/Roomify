@@ -1,7 +1,7 @@
-/// <reference path="../../lib/jQuery.d.ts" />
+/// <reference path="../../lib/jquery.d.ts" />
 /// <reference path="../../lib/three.d.ts" />
 /// <reference path="controller.ts" />
-/// <reference path="floorPlan.ts" />
+/// <reference path="floorplan.ts" />
 /// <reference path="lights.ts" />
 /// <reference path="skybox.ts" />
 /// <reference path="controls.ts" />
@@ -184,10 +184,12 @@ module BP3D.Three {
     };
 
     function animate() {
-      var delay = 50;
-      setTimeout(function () {
-        requestAnimationFrame(animate);
-      }, delay);
+      // Upstream Blueprint3D wrapped this in setTimeout(.., 50), capping the loop
+      // at ~20fps AND desyncing it from vsync — which is what made dragging and
+      // orbiting judder even though nothing was actually slow. The throttle is
+      // redundant anyway: render() is already gated by shouldRender(), so an idle
+      // frame costs four boolean checks and draws nothing.
+      requestAnimationFrame(animate);
       render();
     };
 
