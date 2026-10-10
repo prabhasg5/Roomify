@@ -1,7 +1,7 @@
+# The repo's only .gitignore — keep rules here, not in subfolders.
+
 # Dependencies
 node_modules/
-package-lock.json
-yarn.lock
 
 # Python
 __pycache__/
@@ -11,10 +11,15 @@ __pycache__/
 .Python
 venv/
 env/
-.env
 *.egg-info/
 dist/
 build/
+
+# Environment variables / secrets
+.env
+.env.local
+.env.*.local
+*.env
 
 # IDE
 .vscode/
@@ -22,7 +27,8 @@ build/
 *.swp
 *.swo
 *~
-.DS_Store
+*.sublime-project
+*.sublime-workspace
 
 # Logs
 *.log
@@ -44,19 +50,24 @@ desktop.ini
 *.glb
 *.gltf
 3d_room/example/models/glb/
+3d_room/example/js/blueprint3d.js
+3d_room/example/js/blueprint3d.js.map
+3d_room/example/js/three.min.js
 
-# Certificates (generated)
+# TLS keypair for the AR server (generate locally, never commit)
 3d_room/ar_view/*.pem
-3d_room/ar_view/cert.pem
-3d_room/ar_view/key.pem
 
 # Uploaded/generated files
 3d_room/ar_view/models/
 3d_room/ar_view/designs/
-pscmr/images/generated/
-pscmr/images/uploads/
-pscmr/uploads/
-pscmr/static/images/generated/
+3d_room/uploads/
+3d_room/uploads-debug/
+
+# Parked 2D image-generation app (no longer in use) — its local data
+parked/2d_image_generation/*.db
+parked/2d_image_generation/uploads/
+parked/2d_image_generation/images/
+parked/2d_image_generation/static/images/
 
 # Temporary files
 *.tmp
@@ -71,16 +82,10 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-*.env
-
 # Working-context docs — local only, README.md stays tracked
 *.md
 !README.md
 
-# Local upload / debug output (model-server.js)
-3d_room/uploads/
-3d_room/uploads-debug/
+# Local tool output
+.enola/
+brag-output/

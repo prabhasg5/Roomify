@@ -1,7 +1,7 @@
 """Roomify backend — the catalogue, designs, and the AR view.
 
 Serves 3d_room/example/catalogue.json (built by tools/build-catalogue.js) with
-prices merged in from 2d_image_generation/epics.db, accepts saved designs, and
+prices merged in from backend/data/prices.db, accepts saved designs, and
 serves 3d_room/ar_view/ to the phone. The Pydantic models below ARE the schema:
 a catalogue or a design that does not validate fails here rather than in the agent.
 
@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "3d_room" / "example"
 AR_VIEW = ROOT / "3d_room" / "ar_view"
 CATALOGUE = EXAMPLE / "catalogue.json"
-PRICE_DB = ROOT / "2d_image_generation" / "epics.db"
+PRICE_DB = Path(__file__).resolve().parent / "data" / "prices.db"
 DESIGNS = AR_VIEW / "models"
 
 # Baked into the QR code and /network-info, so they are the ports the phone is
@@ -97,7 +97,7 @@ class Catalogue(BaseModel):
 
 
 # ── price merge ──────────────────────────────────────────────────────────────
-# epics.db lists priced items by shop name, the catalogue by mesh name, so an
+# prices.db lists priced items by shop name, the catalogue by mesh name, so an
 # exact name match only covers a third of it. Category is the fallback, and it
 # is a hand-written map because the two vocabularies are genuinely different.
 # Doors and windows are structural — deliberately unpriced.
