@@ -40,7 +40,7 @@ This is the gap **Roomify** addresses.
 |----------|-------------|
 | **Frontend** | React, Three.js |
 | **Backend** | Node.js, Python, Express.js, REST APIs |
-| **AI & ML** | Image-to-Image generation, Recommendation generation, Google Gemini |
+| **AI & ML** | Planned: an AI design agent (the earlier 2D image-generation demo is parked) |
 | **3D & AR** | WebXR, Three.js, Blender |
 
 ---
@@ -51,20 +51,16 @@ This is the gap **Roomify** addresses.
 Roomify/
 ├── 3d_room/                 # 3D Room Designer & AR View
 │   ├── example/             # Main 3D room designer interface
-│   ├── ar_view/             # AR pages (served by backend/ over HTTPS) + its TLS cert
+│   ├── ar_view/             # AR pages (served by backend/ over HTTPS)
 │   ├── src/                 # TypeScript source files
 │   └── lib/                 # Type definitions
 ├── backend/                 # FastAPI — catalogue, prices, designs, AR serving
-│   └── main.py
-├── 2d_image_generation/     # Flask — AI image generation, price database
-│   ├── app.py
-│   ├── epics.db             # furniture price data
-│   ├── templates/           # HTML templates
-│   └── static/              # Static assets
-└── landing_page/            # Landing page
+│   ├── main.py
+│   └── data/prices.db       # furniture price data
+├── landing_page/            # Landing page
+└── parked/                  # code that is no longer in use
+    └── 2d_image_generation/ # Flask AI image-generation demo (parked)
 ```
-
-Where things stand and what to read next: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 
 ---
 
@@ -108,21 +104,22 @@ http://localhost:9000 without live reload.
 
 There is no separate AR server any more — the FastAPI backend serves `3d_room/ar_view/`
 over HTTPS, which `npm run dev` starts for you on `https://<your-ip>:8002`. WebXR requires
-HTTPS, and the checked-in self-signed certificate (`3d_room/ar_view/cert.pem`, valid to
-Feb 2035) is what it uses. To regenerate it:
+HTTPS, so it needs a self-signed certificate. The keypair is **not** in the repo (it is
+git-ignored) — generate it once after cloning, before `npm run dev` or `npm run ar`:
 
 ```bash
 cd 3d_room/ar_view
-openssl req -nodes -new -x509 -keyout key.pem -out cert.pem -days 3650 -subj '/CN=localhost'
+openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -keyout key.pem -out cert.pem -subj '/CN=roomify-dev'
 ```
+
+Never commit `key.pem`.
 
 Phone and computer must be on the same Wi-Fi; accept the certificate warning on the phone.
 The same pages are on `http://localhost:8080` for desktop testing, without the warning.
 
-### 4. Setting Up the Python Backends
+### 4. Setting Up the Python Backend
 
-There are two, for now. The **catalogue / design / AR service** (FastAPI) is part of
-`npm run dev`:
+The **catalogue / design / AR service** (FastAPI) is part of `npm run dev`:
 
 ```bash
 cd backend
@@ -131,31 +128,8 @@ venv/bin/pip install -r requirements.txt
 venv/bin/uvicorn main:app --port 8080 --reload   # or: cd ../3d_room && npm run backend
 ```
 
-The **2D image generation app** (Flask) is separate and still standalone:
-
-```bash
-# Navigate to the 2d_image_generation directory
-cd 2d_image_generation
-
-# Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create a .env file with your API keys
-cat > .env << EOF
-GEMINI_API_KEY=your_gemini_api_key
-HF_API_TOKEN=your_huggingface_token
-STABILITY_API_KEY=your_stability_api_key
-EOF
-
-# Run the Flask application
-python app.py
-```
-
-The Python backend will be available at `http://localhost:5000`
+The old 2D image-generation demo (Flask) is parked in `parked/2d_image_generation/` and
+is not part of the app.
 
 ---
 
@@ -190,24 +164,6 @@ The Python backend will be available at `http://localhost:5000`
    - Point your camera at a flat surface
    - Your room design will appear in AR
    - Walk around to explore from different angles
-
-### AI-Powered Features
-
-1. **Room Analysis**: Upload an image of an empty room
-2. **AI Recommendations**: Get furniture suggestions based on room style
-3. **Image Generation**: Generate furnished room visualizations
-
----
-
-## Configuration
-
-### Environment Variables (2d_image_generation/.env)
-
-| Variable | Description |
-|----------|-------------|
-| `GEMINI_API_KEY` | Google Gemini API key for room analysis |
-| `HF_API_TOKEN` | HuggingFace API token for AI models |
-| `STABILITY_API_KEY` | Stability AI key for image generation |
 
 ---
 
