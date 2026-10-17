@@ -27,7 +27,8 @@
   "devDependencies": {
     "concurrently": "^10.0.3",
     "typescript": "^5.9.3",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "5.0.3"
   },
   "repository": {
     "type": "git",
@@ -44,6 +45,7 @@
     "ar": "cd ../backend && venv/bin/uvicorn main:app --host 0.0.0.0 --port 8002 --ssl-keyfile ../3d_room/ar_view/key.pem --ssl-certfile ../3d_room/ar_view/cert.pem",
     "check:models": "node tools/check-model-serving.mjs",
     "check:catalogue": "node tools/check-catalogue-ids.mjs",
+    "test": "vitest run",
     "start": "node model-server.js",
     "convert": "node gltf-to-threejs-json.js"
   },
