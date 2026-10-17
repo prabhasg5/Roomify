@@ -1,0 +1,296 @@
+{
+ "floorplan": {
+  "corners": {
+   "30dd0af0-6d68-9723-cc76-4b7c3499a87b": {
+    "x": -613.4099999999999,
+    "y": -461.01000000000005
+   },
+   "8bccc229-315c-b890-7442-c539fe993d44": {
+    "x": 121.92000000000007,
+    "y": -461.01000000000005
+   },
+   "c1ca273c-52c5-69c7-3fcc-26efb9e2938b": {
+    "x": 613.4099999999999,
+    "y": -461.01000000000005
+   },
+   "209043c0-0c79-9f49-dda3-3d0dfd47b7e2": {
+    "x": 613.4099999999999,
+    "y": 461.01
+   },
+   "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c": {
+    "x": 365.76,
+    "y": 461.01
+   },
+   "ef101d63-0a19-de62-4b62-e1988293ef96": {
+    "x": 121.92000000000007,
+    "y": 461.01
+   },
+   "b4532a8f-ad43-f2e9-21c5-fa5629bb636b": {
+    "x": -613.4099999999999,
+    "y": 461.01
+   },
+   "1e1a66b7-5306-a855-8252-8813137cced8": {
+    "x": 613.4099999999999,
+    "y": 91.43999999999994
+   },
+   "daaf45d5-2a0d-4da2-e4db-4a3924cba792": {
+    "x": -613.4099999999999,
+    "y": 0
+   },
+   "8c8f531a-1ec3-242f-1142-4d02acf4a6c4": {
+    "x": 121.92000000000007,
+    "y": -5.684341886080802e-14
+   },
+   "1de98217-85f2-363b-cacd-4099fdddf439": {
+    "x": 121.92000000000007,
+    "y": 91.43999999999994
+   },
+   "deb800f2-2ed7-0741-fbf7-5468b87edd8b": {
+    "x": 129.54000000000008,
+    "y": -5.684341886080802e-14
+   },
+   "18064027-dea9-cb93-cab4-388618a4262d": {
+    "x": 114.30000000000007,
+    "y": 91.43999999999994
+   },
+   "689e8ae4-498c-e270-4fec-e8bbdc9ca20a": {
+    "x": 365.7600000000001,
+    "y": 91.43999999999994
+   },
+   "ab473c0b-6236-4eb9-3461-43d3ee54f75b": {
+    "x": 365.7600000000001,
+    "y": 83.81999999999994
+   }
+  },
+  "walls": [
+   {
+    "corner1": "30dd0af0-6d68-9723-cc76-4b7c3499a87b",
+    "corner2": "8bccc229-315c-b890-7442-c539fe993d44",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "8bccc229-315c-b890-7442-c539fe993d44",
+    "corner2": "c1ca273c-52c5-69c7-3fcc-26efb9e2938b",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "209043c0-0c79-9f49-dda3-3d0dfd47b7e2",
+    "corner2": "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+    "corner2": "ef101d63-0a19-de62-4b62-e1988293ef96",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "ef101d63-0a19-de62-4b62-e1988293ef96",
+    "corner2": "b4532a8f-ad43-f2e9-21c5-fa5629bb636b",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "c1ca273c-52c5-69c7-3fcc-26efb9e2938b",
+    "corner2": "1e1a66b7-5306-a855-8252-8813137cced8",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "1e1a66b7-5306-a855-8252-8813137cced8",
+    "corner2": "209043c0-0c79-9f49-dda3-3d0dfd47b7e2",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "b4532a8f-ad43-f2e9-21c5-fa5629bb636b",
+    "corner2": "daaf45d5-2a0d-4da2-e4db-4a3924cba792",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "daaf45d5-2a0d-4da2-e4db-4a3924cba792",
+    "corner2": "30dd0af0-6d68-9723-cc76-4b7c3499a87b",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "8bccc229-315c-b890-7442-c539fe993d44",
+    "corner2": "8c8f531a-1ec3-242f-1142-4d02acf4a6c4",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "8c8f531a-1ec3-242f-1142-4d02acf4a6c4",
+    "corner2": "1de98217-85f2-363b-cacd-4099fdddf439",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "1de98217-85f2-363b-cacd-4099fdddf439",
+    "corner2": "ef101d63-0a19-de62-4b62-e1988293ef96",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "daaf45d5-2a0d-4da2-e4db-4a3924cba792",
+    "corner2": "deb800f2-2ed7-0741-fbf7-5468b87edd8b",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "18064027-dea9-cb93-cab4-388618a4262d",
+    "corner2": "689e8ae4-498c-e270-4fec-e8bbdc9ca20a",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "689e8ae4-498c-e270-4fec-e8bbdc9ca20a",
+    "corner2": "1e1a66b7-5306-a855-8252-8813137cced8",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "ab473c0b-6236-4eb9-3461-43d3ee54f75b",
+    "corner2": "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   }
+  ],
+  "wallTextures": [],
+  "floorTextures": {},
+  "newFloorTextures": {}
+ },
+ "items": []
+}

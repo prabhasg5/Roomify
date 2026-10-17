@@ -1,0 +1,142 @@
+{
+ "counts": {
+  "corners": 4,
+  "walls": 4,
+  "rooms": 1,
+  "items": 0
+ },
+ "rooms": [
+  {
+   "corners": [
+    "f90da5e3-9e0e-eba7-173d-eb0b071e838e",
+    "71d4f128-ae80-3d58-9bd2-711c6ce6cdf2",
+    "4e3d65cb-54c0-0681-28bf-bddcc7bdb571",
+    "da026c08-d76a-a944-8e7b-096b752da9ed"
+   ],
+   "interior": [
+    {
+     "x": 209.851,
+     "y": 284.052
+    },
+    {
+     "x": 209.851,
+     "y": -173.308
+    },
+    {
+     "x": 667.211,
+     "y": -173.308
+    },
+    {
+     "x": 667.211,
+     "y": 284.052
+    }
+   ]
+  }
+ ],
+ "walls": [
+  {
+   "start": "71d4f128-ae80-3d58-9bd2-711c6ce6cdf2",
+   "end": "f90da5e3-9e0e-eba7-173d-eb0b071e838e",
+   "thickness": 10,
+   "height": 250,
+   "front": null,
+   "back": {
+    "interiorStart": {
+     "x": 209.851,
+     "y": 284.052
+    },
+    "interiorEnd": {
+     "x": 209.851,
+     "y": -173.308
+    },
+    "exteriorStart": {
+     "x": 199.851,
+     "y": 294.052
+    },
+    "exteriorEnd": {
+     "x": 199.851,
+     "y": -183.308
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "f90da5e3-9e0e-eba7-173d-eb0b071e838e",
+   "end": "da026c08-d76a-a944-8e7b-096b752da9ed",
+   "thickness": 10,
+   "height": 250,
+   "front": null,
+   "back": {
+    "interiorStart": {
+     "x": 667.211,
+     "y": 284.052
+    },
+    "interiorEnd": {
+     "x": 209.851,
+     "y": 284.052
+    },
+    "exteriorStart": {
+     "x": 677.211,
+     "y": 294.052
+    },
+    "exteriorEnd": {
+     "x": 199.851,
+     "y": 294.052
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "da026c08-d76a-a944-8e7b-096b752da9ed",
+   "end": "4e3d65cb-54c0-0681-28bf-bddcc7bdb571",
+   "thickness": 10,
+   "height": 250,
+   "front": null,
+   "back": {
+    "interiorStart": {
+     "x": 667.211,
+     "y": -173.308
+    },
+    "interiorEnd": {
+     "x": 667.211,
+     "y": 284.052
+    },
+    "exteriorStart": {
+     "x": 677.211,
+     "y": -183.308
+    },
+    "exteriorEnd": {
+     "x": 677.211,
+     "y": 294.052
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "4e3d65cb-54c0-0681-28bf-bddcc7bdb571",
+   "end": "71d4f128-ae80-3d58-9bd2-711c6ce6cdf2",
+   "thickness": 10,
+   "height": 250,
+   "front": null,
+   "back": {
+    "interiorStart": {
+     "x": 209.851,
+     "y": -173.308
+    },
+    "interiorEnd": {
+     "x": 667.211,
+     "y": -173.308
+    },
+    "exteriorStart": {
+     "x": 199.851,
+     "y": -183.308
+    },
+    "exteriorEnd": {
+     "x": 677.211,
+     "y": -183.308
+    },
+    "holes": []
+   }
+  }
+ ]
+}

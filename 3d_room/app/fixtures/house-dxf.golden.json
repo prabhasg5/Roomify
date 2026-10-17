@@ -1,0 +1,641 @@
+{
+ "counts": {
+  "corners": 15,
+  "walls": 16,
+  "rooms": 2,
+  "items": 0
+ },
+ "rooms": [
+  {
+   "corners": [
+    "30dd0af0-6d68-9723-cc76-4b7c3499a87b",
+    "8bccc229-315c-b890-7442-c539fe993d44",
+    "8c8f531a-1ec3-242f-1142-4d02acf4a6c4",
+    "1de98217-85f2-363b-cacd-4099fdddf439",
+    "ef101d63-0a19-de62-4b62-e1988293ef96",
+    "b4532a8f-ad43-f2e9-21c5-fa5629bb636b",
+    "daaf45d5-2a0d-4da2-e4db-4a3924cba792"
+   ],
+   "interior": [
+    {
+     "x": -608.41,
+     "y": -456.01
+    },
+    {
+     "x": 116.92,
+     "y": -456.01
+    },
+    {
+     "x": 116.92,
+     "y": 0
+    },
+    {
+     "x": 116.92,
+     "y": 91.44
+    },
+    {
+     "x": 116.92,
+     "y": 456.01
+    },
+    {
+     "x": -608.41,
+     "y": 456.01
+    },
+    {
+     "x": -608.41,
+     "y": 0
+    }
+   ]
+  },
+  {
+   "corners": [
+    "8bccc229-315c-b890-7442-c539fe993d44",
+    "c1ca273c-52c5-69c7-3fcc-26efb9e2938b",
+    "1e1a66b7-5306-a855-8252-8813137cced8",
+    "209043c0-0c79-9f49-dda3-3d0dfd47b7e2",
+    "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+    "ef101d63-0a19-de62-4b62-e1988293ef96",
+    "1de98217-85f2-363b-cacd-4099fdddf439",
+    "8c8f531a-1ec3-242f-1142-4d02acf4a6c4"
+   ],
+   "interior": [
+    {
+     "x": 126.92,
+     "y": -456.01
+    },
+    {
+     "x": 608.41,
+     "y": -456.01
+    },
+    {
+     "x": 608.41,
+     "y": 91.44
+    },
+    {
+     "x": 608.41,
+     "y": 456.01
+    },
+    {
+     "x": 365.76,
+     "y": 456.01
+    },
+    {
+     "x": 126.92,
+     "y": 456.01
+    },
+    {
+     "x": 126.92,
+     "y": 91.44
+    },
+    {
+     "x": 126.92,
+     "y": 0
+    }
+   ]
+  }
+ ],
+ "walls": [
+  {
+   "start": "30dd0af0-6d68-9723-cc76-4b7c3499a87b",
+   "end": "8bccc229-315c-b890-7442-c539fe993d44",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": -608.41,
+     "y": -456.01
+    },
+    "interiorEnd": {
+     "x": 116.92,
+     "y": -456.01
+    },
+    "exteriorStart": {
+     "x": -618.41,
+     "y": -466.01
+    },
+    "exteriorEnd": {
+     "x": 126.92,
+     "y": -466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "8bccc229-315c-b890-7442-c539fe993d44",
+   "end": "c1ca273c-52c5-69c7-3fcc-26efb9e2938b",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 126.92,
+     "y": -456.01
+    },
+    "interiorEnd": {
+     "x": 608.41,
+     "y": -456.01
+    },
+    "exteriorStart": {
+     "x": 116.92,
+     "y": -466.01
+    },
+    "exteriorEnd": {
+     "x": 618.41,
+     "y": -466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "209043c0-0c79-9f49-dda3-3d0dfd47b7e2",
+   "end": "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 608.41,
+     "y": 456.01
+    },
+    "interiorEnd": {
+     "x": 365.76,
+     "y": 456.01
+    },
+    "exteriorStart": {
+     "x": 618.41,
+     "y": 466.01
+    },
+    "exteriorEnd": {
+     "x": 365.76,
+     "y": 466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+   "end": "ef101d63-0a19-de62-4b62-e1988293ef96",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 365.76,
+     "y": 456.01
+    },
+    "interiorEnd": {
+     "x": 126.92,
+     "y": 456.01
+    },
+    "exteriorStart": {
+     "x": 365.76,
+     "y": 466.01
+    },
+    "exteriorEnd": {
+     "x": 116.92,
+     "y": 466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "ef101d63-0a19-de62-4b62-e1988293ef96",
+   "end": "b4532a8f-ad43-f2e9-21c5-fa5629bb636b",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 116.92,
+     "y": 456.01
+    },
+    "interiorEnd": {
+     "x": -608.41,
+     "y": 456.01
+    },
+    "exteriorStart": {
+     "x": 126.92,
+     "y": 466.01
+    },
+    "exteriorEnd": {
+     "x": -618.41,
+     "y": 466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "c1ca273c-52c5-69c7-3fcc-26efb9e2938b",
+   "end": "1e1a66b7-5306-a855-8252-8813137cced8",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 608.41,
+     "y": -456.01
+    },
+    "interiorEnd": {
+     "x": 608.41,
+     "y": 91.44
+    },
+    "exteriorStart": {
+     "x": 618.41,
+     "y": -466.01
+    },
+    "exteriorEnd": {
+     "x": 618.41,
+     "y": 91.44
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "1e1a66b7-5306-a855-8252-8813137cced8",
+   "end": "209043c0-0c79-9f49-dda3-3d0dfd47b7e2",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 608.41,
+     "y": 91.44
+    },
+    "interiorEnd": {
+     "x": 608.41,
+     "y": 456.01
+    },
+    "exteriorStart": {
+     "x": 618.41,
+     "y": 91.44
+    },
+    "exteriorEnd": {
+     "x": 618.41,
+     "y": 466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "b4532a8f-ad43-f2e9-21c5-fa5629bb636b",
+   "end": "daaf45d5-2a0d-4da2-e4db-4a3924cba792",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": -608.41,
+     "y": 456.01
+    },
+    "interiorEnd": {
+     "x": -608.41,
+     "y": 0
+    },
+    "exteriorStart": {
+     "x": -618.41,
+     "y": 466.01
+    },
+    "exteriorEnd": {
+     "x": -618.41,
+     "y": 0
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "daaf45d5-2a0d-4da2-e4db-4a3924cba792",
+   "end": "30dd0af0-6d68-9723-cc76-4b7c3499a87b",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": -608.41,
+     "y": 0
+    },
+    "interiorEnd": {
+     "x": -608.41,
+     "y": -456.01
+    },
+    "exteriorStart": {
+     "x": -618.41,
+     "y": 0
+    },
+    "exteriorEnd": {
+     "x": -618.41,
+     "y": -466.01
+    },
+    "holes": []
+   },
+   "back": null
+  },
+  {
+   "start": "8bccc229-315c-b890-7442-c539fe993d44",
+   "end": "8c8f531a-1ec3-242f-1142-4d02acf4a6c4",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 116.92,
+     "y": -456.01
+    },
+    "interiorEnd": {
+     "x": 116.92,
+     "y": 0
+    },
+    "exteriorStart": {
+     "x": 126.92,
+     "y": -466.01
+    },
+    "exteriorEnd": {
+     "x": 126.92,
+     "y": 0
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 126.92,
+     "y": 0
+    },
+    "interiorEnd": {
+     "x": 126.92,
+     "y": -456.01
+    },
+    "exteriorStart": {
+     "x": 116.92,
+     "y": 0
+    },
+    "exteriorEnd": {
+     "x": 116.92,
+     "y": -466.01
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "8c8f531a-1ec3-242f-1142-4d02acf4a6c4",
+   "end": "1de98217-85f2-363b-cacd-4099fdddf439",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 116.92,
+     "y": 0
+    },
+    "interiorEnd": {
+     "x": 116.92,
+     "y": 91.44
+    },
+    "exteriorStart": {
+     "x": 126.92,
+     "y": 0
+    },
+    "exteriorEnd": {
+     "x": 126.92,
+     "y": 91.44
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 126.92,
+     "y": 91.44
+    },
+    "interiorEnd": {
+     "x": 126.92,
+     "y": 0
+    },
+    "exteriorStart": {
+     "x": 116.92,
+     "y": 91.44
+    },
+    "exteriorEnd": {
+     "x": 116.92,
+     "y": 0
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "1de98217-85f2-363b-cacd-4099fdddf439",
+   "end": "ef101d63-0a19-de62-4b62-e1988293ef96",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 116.92,
+     "y": 91.44
+    },
+    "interiorEnd": {
+     "x": 116.92,
+     "y": 456.01
+    },
+    "exteriorStart": {
+     "x": 126.92,
+     "y": 91.44
+    },
+    "exteriorEnd": {
+     "x": 126.92,
+     "y": 466.01
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 126.92,
+     "y": 456.01
+    },
+    "interiorEnd": {
+     "x": 126.92,
+     "y": 91.44
+    },
+    "exteriorStart": {
+     "x": 116.92,
+     "y": 466.01
+    },
+    "exteriorEnd": {
+     "x": 116.92,
+     "y": 91.44
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "daaf45d5-2a0d-4da2-e4db-4a3924cba792",
+   "end": "deb800f2-2ed7-0741-fbf7-5468b87edd8b",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": -613.41,
+     "y": 5
+    },
+    "interiorEnd": {
+     "x": 129.54,
+     "y": 5
+    },
+    "exteriorStart": {
+     "x": -613.41,
+     "y": -5
+    },
+    "exteriorEnd": {
+     "x": 129.54,
+     "y": -5
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 129.54,
+     "y": -5
+    },
+    "interiorEnd": {
+     "x": -613.41,
+     "y": -5
+    },
+    "exteriorStart": {
+     "x": 129.54,
+     "y": 5
+    },
+    "exteriorEnd": {
+     "x": -613.41,
+     "y": 5
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "18064027-dea9-cb93-cab4-388618a4262d",
+   "end": "689e8ae4-498c-e270-4fec-e8bbdc9ca20a",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 114.3,
+     "y": 96.44
+    },
+    "interiorEnd": {
+     "x": 365.76,
+     "y": 96.44
+    },
+    "exteriorStart": {
+     "x": 114.3,
+     "y": 86.44
+    },
+    "exteriorEnd": {
+     "x": 365.76,
+     "y": 86.44
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 365.76,
+     "y": 86.44
+    },
+    "interiorEnd": {
+     "x": 114.3,
+     "y": 86.44
+    },
+    "exteriorStart": {
+     "x": 365.76,
+     "y": 96.44
+    },
+    "exteriorEnd": {
+     "x": 114.3,
+     "y": 96.44
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "689e8ae4-498c-e270-4fec-e8bbdc9ca20a",
+   "end": "1e1a66b7-5306-a855-8252-8813137cced8",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 365.76,
+     "y": 96.44
+    },
+    "interiorEnd": {
+     "x": 613.41,
+     "y": 96.44
+    },
+    "exteriorStart": {
+     "x": 365.76,
+     "y": 86.44
+    },
+    "exteriorEnd": {
+     "x": 613.41,
+     "y": 86.44
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 613.41,
+     "y": 86.44
+    },
+    "interiorEnd": {
+     "x": 365.76,
+     "y": 86.44
+    },
+    "exteriorStart": {
+     "x": 613.41,
+     "y": 96.44
+    },
+    "exteriorEnd": {
+     "x": 365.76,
+     "y": 96.44
+    },
+    "holes": []
+   }
+  },
+  {
+   "start": "ab473c0b-6236-4eb9-3461-43d3ee54f75b",
+   "end": "66fc4d68-ad5d-f3df-ec5f-b157eb3bd59c",
+   "thickness": 10,
+   "height": 250,
+   "front": {
+    "interiorStart": {
+     "x": 360.76,
+     "y": 83.82
+    },
+    "interiorEnd": {
+     "x": 360.76,
+     "y": 461.01
+    },
+    "exteriorStart": {
+     "x": 370.76,
+     "y": 83.82
+    },
+    "exteriorEnd": {
+     "x": 370.76,
+     "y": 461.01
+    },
+    "holes": []
+   },
+   "back": {
+    "interiorStart": {
+     "x": 370.76,
+     "y": 461.01
+    },
+    "interiorEnd": {
+     "x": 370.76,
+     "y": 83.82
+    },
+    "exteriorStart": {
+     "x": 360.76,
+     "y": 461.01
+    },
+    "exteriorEnd": {
+     "x": 360.76,
+     "y": 83.82
+    },
+    "holes": []
+   }
+  }
+ ]
+}

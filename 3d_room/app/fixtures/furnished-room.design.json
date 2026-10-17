@@ -1,0 +1,229 @@
+{
+ "floorplan": {
+  "corners": {
+   "f90da5e3-9e0e-eba7-173d-eb0b071e838e": {
+    "x": 204.85099999999989,
+    "y": 289.052
+   },
+   "da026c08-d76a-a944-8e7b-096b752da9ed": {
+    "x": 672.2109999999999,
+    "y": 289.052
+   },
+   "4e3d65cb-54c0-0681-28bf-bddcc7bdb571": {
+    "x": 672.2109999999999,
+    "y": -178.308
+   },
+   "71d4f128-ae80-3d58-9bd2-711c6ce6cdf2": {
+    "x": 204.85099999999989,
+    "y": -178.308
+   }
+  },
+  "walls": [
+   {
+    "corner1": "71d4f128-ae80-3d58-9bd2-711c6ce6cdf2",
+    "corner2": "f90da5e3-9e0e-eba7-173d-eb0b071e838e",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "f90da5e3-9e0e-eba7-173d-eb0b071e838e",
+    "corner2": "da026c08-d76a-a944-8e7b-096b752da9ed",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "da026c08-d76a-a944-8e7b-096b752da9ed",
+    "corner2": "4e3d65cb-54c0-0681-28bf-bddcc7bdb571",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   },
+   {
+    "corner1": "4e3d65cb-54c0-0681-28bf-bddcc7bdb571",
+    "corner2": "71d4f128-ae80-3d58-9bd2-711c6ce6cdf2",
+    "frontTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    },
+    "backTexture": {
+     "url": "rooms/textures/wallmap.png",
+     "stretch": true,
+     "scale": 0
+    }
+   }
+  ],
+  "wallTextures": [],
+  "floorTextures": {},
+  "newFloorTextures": {}
+ },
+ "items": [
+  {
+   "item_name": "Closed Door",
+   "item_type": 7,
+   "model_url": "models/js/closed-door28x80_baked.js",
+   "product_id": "closed-door",
+   "variant_id": "default",
+   "xpos": 299.99999999999994,
+   "ypos": 110.80000022010701,
+   "zpos": 288.55200195312506,
+   "rotation": 3.141592653589793,
+   "rotation_x": 0,
+   "rotation_y": 3.141592653589793,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Window",
+   "item_type": 3,
+   "model_url": "models/js/whitewindow.js",
+   "product_id": "window",
+   "variant_id": "default",
+   "xpos": 671.7109985351562,
+   "ypos": 150,
+   "zpos": 60.00000000000006,
+   "rotation": -1.5707963267948966,
+   "rotation_x": 0,
+   "rotation_y": -1.5707963267948966,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Sofa",
+   "item_type": 1,
+   "model_url": "models/js/cb-rochelle-gray_baked.js",
+   "product_id": "sofa",
+   "variant_id": "grey",
+   "xpos": 438,
+   "ypos": 42.54509923821,
+   "zpos": 220,
+   "rotation": 3.141592653589793,
+   "rotation_x": 0,
+   "rotation_y": 3.141592653589793,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Coffee Table",
+   "item_type": 1,
+   "model_url": "models/js/ik-stockholmcoffee-brown.js",
+   "product_id": "coffee-table",
+   "variant_id": "wood",
+   "xpos": 438,
+   "ypos": 24.01483158034958,
+   "zpos": 120,
+   "rotation": 0,
+   "rotation_x": 0,
+   "rotation_y": 0,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Blue Rug",
+   "item_type": 8,
+   "model_url": "models/js/cb-blue-block-60x96.js",
+   "product_id": "blue-rug",
+   "variant_id": "default",
+   "xpos": 438,
+   "ypos": 0.250005,
+   "zpos": 110,
+   "rotation": 0,
+   "rotation_x": 0,
+   "rotation_y": 0,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Floor Lamp",
+   "item_type": 1,
+   "model_url": "models/js/ore-3legged-white_baked.js",
+   "product_id": "floor-lamp",
+   "variant_id": "default",
+   "xpos": 600,
+   "ypos": 72.163997943445,
+   "zpos": 240,
+   "rotation": 0,
+   "rotation_x": 0,
+   "rotation_y": 0,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Bookshelf",
+   "item_type": 1,
+   "model_url": "models/js/cb-kendallbookcasewalnut_baked.js",
+   "product_id": "bookshelf",
+   "variant_id": "default",
+   "xpos": 240,
+   "ypos": 92.17650034119151,
+   "zpos": -100,
+   "rotation": 1.5707963267948966,
+   "rotation_x": 0,
+   "rotation_y": 1.5707963267948966,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  },
+  {
+   "item_name": "Chair",
+   "item_type": 1,
+   "model_url": "models/js/ik-ekero-blue_baked.js",
+   "product_id": "chair",
+   "variant_id": "blue",
+   "xpos": 560,
+   "ypos": 37.500000370129,
+   "zpos": 0,
+   "rotation": -0.7853981633974483,
+   "rotation_x": 0,
+   "rotation_y": -0.7853981633974483,
+   "rotation_z": 0,
+   "scale_x": 1,
+   "scale_y": 1,
+   "scale_z": 1,
+   "fixed": false
+  }
+ ]
+}
