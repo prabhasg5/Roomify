@@ -49,7 +49,10 @@ desktop.ini
 # Build outputs
 *.glb
 *.gltf
-3d_room/example/models/glb/
+# ...except the catalogue's own GLBs (catalogue.json points at them); the
+# 281k-face problem upload stays local (stage-2 test asset).
+!3d_room/example/models/glb/*.glb
+3d_room/example/models/glb/white-sofa-1790761067934.glb
 3d_room/example/js/blueprint3d.js
 3d_room/example/js/blueprint3d.js.map
 3d_room/example/js/three.min.js

@@ -3,6 +3,7 @@
     "name": "Couch",
     "image": "models/thumbnails/thumbnail_couch-1771955277196.png",
     "model": "models/js/couch-1771955277196_baked.js",
+    "glb": "models/glb/couch-1771955277196.glb",
     "type": "1",
     "addedAt": "2026-02-24T17:47:57.325Z",
     "metadata": {

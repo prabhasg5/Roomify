@@ -443,37 +443,53 @@
             });
         }
 
-        function loadFurniture(targetGroup) {
+        // Every catalogue variant has a glb: key it by product/variant id (the
+        // published contract) and by legacy mesh url (designs saved before ids).
+        async function catalogueGlbs() {
+            const glbs = {};
+            try {
+                const res = await fetch(SERVER + '/api/catalogue', { cache: 'no-store' });
+                for (const p of (await res.json()).products)
+                    for (const v of p.variants) {
+                        if (!v.glb) continue;
+                        glbs[p.id + '/' + v.id] = v.glb;
+                        if (v.model) glbs[v.model] = v.glb;
+                    }
+            } catch (e) { console.error('Catalogue fetch failed', e); }
+            return glbs;
+        }
+
+        async function loadFurniture(targetGroup) {
             const container = document.getElementById('items-container');
             container.innerHTML = '';
-            
+
             if (!designData?.items?.length) {
                 container.innerHTML = '<div class="item-entry">No furniture in design</div>';
                 return;
             }
-            
+
             const items = designData.items;
             const loader = new THREE.GLTFLoader();
+            const glbs = await catalogueGlbs();
             let loaded = 0;
-            
+
             items.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'item-entry';
                 div.innerHTML = `<span>⏳ ${item.item_name}</span>`;
                 container.appendChild(div);
-                
-                                const glbUrl = (function() {
-                                    if (item.glb_url) {
-                                        // Stored as models/glb/<file>.glb from the upload catalog
-                                        const cleaned = item.glb_url.replace(/^\//, '');
-                                        const rewired = cleaned.replace(/^models\/glb\//, 'glb/');
-                                        return SERVER + '/' + rewired;
-                                    }
-                                    const jsFile = item.model_url.split('/').pop();
-                                    const glbFile = jsFile.replace('.js', '.glb');
-                                    return SERVER + '/glb/' + glbFile;
-                                })();
-                
+
+                const glb = glbs[item.product_id + '/' + item.variant_id] || glbs[item.model_url] || item.glb_url;
+                if (!glb) {
+                    console.error('Not in the catalogue:', item.item_name, item.product_id, item.variant_id, item.model_url);
+                    div.className = 'item-entry error';
+                    div.innerHTML = `<span>✗ ${item.item_name} (not in catalogue)</span>`;
+                    loaded++;
+                    return;
+                }
+                // Stored as models/glb/<file>.glb; FastAPI mounts that folder at /glb
+                const glbUrl = SERVER + '/' + glb.replace(/^\//, '').replace(/^models\/glb\//, 'glb/');
+
                 loader.load(glbUrl, 
                     (gltf) => {
                         const model = gltf.scene;

@@ -6,7 +6,12 @@
  * Sources (all existing, nothing new authored by hand):
  *   example/js/items.js            → the 25 built-in entries
  *   example/models/user-models.json → user-uploaded models
- *   example/models/js/*.js          → the meshes, for REAL dimensions
+ *   example/models/glb/*.glb        → the meshes the renderer loads, for REAL dimensions
+ *                                     (written by tools/legacy-json-to-glb.mjs)
+ *   example/models/js/*.js          → fallback when a variant has no GLB yet
+ *
+ * A variant's `glb` is the source's own `glb`, else models/glb/<same name as the .js>.glb.
+ * Dimensions are the GLB's world-space bounding box (node transforms applied).
  *
  * Dimensions are measured, not guessed: Three.js JSON v3.1 stores raw vertices
  * plus a `scale` divisor, so actual_cm = vertex_range / scale. Verified against
@@ -20,6 +25,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const { NodeIO } = require('@gltf-transform/core');
+const { ALL_EXTENSIONS } = require('@gltf-transform/extensions');
+const { getBounds } = require('@gltf-transform/functions');
 
 const ROOT = path.join(__dirname, '..');
 const EXAMPLE = path.join(ROOT, 'example');
@@ -105,7 +113,6 @@ function measure(modelRelPath) {
     if (v[i+1] < minY) minY = v[i+1]; if (v[i+1] > maxY) maxY = v[i+1];
     if (v[i+2] < minZ) minZ = v[i+2]; if (v[i+2] > maxZ) maxZ = v[i+2];
   }
-  const r1 = n => Math.round(n * 10) / 10;
   return {
     dimensions: {                    // centimetres, matching the engine's unit
       width:  r1((maxX - minX) / s), // x — same axis as Item.getWidth()
@@ -115,6 +122,18 @@ function measure(modelRelPath) {
     note: null
   };
 }
+
+const r1 = n => Math.round(n * 10) / 10;
+
+async function measureGlb(glbRelPath) {
+  const { min, max } = getBounds((await new NodeIO().registerExtensions(ALL_EXTENSIONS).read(path.join(EXAMPLE, glbRelPath))).getRoot().listScenes()[0]);
+  return { width: r1(max[0] - min[0]), height: r1(max[1] - min[1]), depth: r1(max[2] - min[2]) };
+}
+
+const conventionalGlb = model => {
+  const glb = `models/glb/${path.basename(model, '.js')}.glb`;
+  return fs.existsSync(path.join(EXAMPLE, glb)) ? glb : null;
+};
 
 // ── read the two existing sources ────────────────────────────────────────────
 function readBuiltIns() {
@@ -141,7 +160,7 @@ function readUploads() {
 }
 
 // ── build ────────────────────────────────────────────────────────────────────
-function build() {
+async function build() {
   const warn = m => console.warn(`   ⚠ ${m}`);
   const raw = [];
 
@@ -182,8 +201,10 @@ function build() {
       });
     }
     const p = products.get(id);
-    const { dimensions, note } = measure(r.model);
+    const glb = r.glb || conventionalGlb(r.model);
+    const { dimensions, note } = glb ? { dimensions: await measureGlb(glb), note: null } : measure(r.model);
     if (note) warn(`${r.name}: ${note}`);
+    if (!glb) warn(`${r.name}: no GLB — run tools/legacy-json-to-glb.mjs`);
 
     // Disambiguate colliding variant labels (the case-duplicate pair).
     let label = variant;
@@ -194,7 +215,7 @@ function build() {
       id: slug(label),
       label,
       model: r.model,
-      glb: r.glb,
+      glb,
       thumbnail: r.image || null,
       dimensions,               // measured from the mesh, in cm
       price_delta: 0,           // ← curate if variants differ in price
@@ -219,8 +240,8 @@ function build() {
   };
 }
 
-function main() {
-  const out = build();
+async function main() {
+  const out = await build();
   fs.writeFileSync(OUT, JSON.stringify(out, null, 2));
   const c = out.catalogue;
   console.log(`\n✅ ${path.relative(ROOT, OUT)}`);
