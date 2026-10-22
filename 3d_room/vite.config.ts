@@ -45,6 +45,8 @@ export default defineConfig({
   // Serve the existing example/ app as the web root.
   root: "example",
   plugins: [rawJsonModels()],
+  // The stage-2 app (next.html) lives outside the root, in 3d_room/app/: serve it at /app/.
+  resolve: { alias: [{ find: /^\/app\//, replacement: path.resolve(import.meta.dirname, "app") + "/" }] },
   server: {
     port: 5173,
     open: true,

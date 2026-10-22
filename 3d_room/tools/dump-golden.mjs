@@ -3,7 +3,7 @@
 //
 // Usage:  npm run build && node tools/dump-golden.mjs
 //
-// Loads node_modules/three (r69) + example/js/blueprint3d.js in a vm context (only $.Callbacks is
+// Loads node_modules/three-r69 (r69, aliased) + example/js/blueprint3d.js in a vm context (only $.Callbacks is
 // stubbed), loads each app/fixtures/*.design.json with model.loadSerialized(), and writes
 // app/fixtures/<name>.golden.json:
 //   rooms  — each room's corner ids + interior polygon (floorplan.ts findRooms + room.ts)
@@ -49,7 +49,7 @@ export function loadEngine(extraScripts = []) {
 
   const run = (file, patch = (s) => s) =>
     vm.runInContext(patch(fs.readFileSync(file, "utf8")), ctx, { filename: file });
-  run(path.join(ROOT, "node_modules/three/three.js"));
+  run(path.join(ROOT, "node_modules/three-r69/three.js"));
   // ponytail: the golden is the reference for step 2, which drops the 150-corner room-detection
   // guard — so lift it here, in memory only, to get rooms for the big CAD plan too.
   run(path.join(EXAMPLE, "js/blueprint3d.js"), (s) => {

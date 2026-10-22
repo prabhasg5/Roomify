@@ -1,0 +1,7 @@
+html, body, #root { margin: 0; height: 100%; }
+body { font: 14px/1.4 system-ui, sans-serif; color: #222; background: #fff; }
+.app { display: flex; flex-direction: column; height: 100%; }
+header { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
+.muted { color: #777; }
+.errors { margin: 0; padding: 8px 12px 8px 32px; background: #fdecea; color: #8a1c13; border-bottom: 1px solid #f5c2bd; }
+main { flex: 1; min-height: 0; }
