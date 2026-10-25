@@ -2,25 +2,17 @@
 // Math from the old items/wall_item.ts closestWallEdge() and three/edge.ts makeWall().
 
 import { ItemType, type Design, type Opening, type PlacedItem, type Point, type Rect, type Vec3 } from "./types";
-import type { Edges } from "./walls";
+import { nearestSide, wallSides, type Edges } from "./walls";
 
 export const cutsWall = (item: PlacedItem) => item.type === ItemType.InWall || item.type === ItemType.InWallFloor;
 
 /** Each in-wall item's wall: the one whose interior edge is nearest in plan. */
 export function findOpenings(design: Design, edges: Edges): Opening[] {
-  const all = edges.walls.flatMap((w) => [w.front, w.back]).filter((e) => e !== null);
+  const sides = wallSides(edges);
   const openings: Opening[] = [];
   design.items.forEach((item, i) => {
     if (!cutsWall(item)) return;
-    let best: (typeof all)[number] | undefined;
-    let min = Infinity;
-    for (const e of all) {
-      const d = segmentDistance({ x: item.position.x, y: item.position.z }, e.interiorStart, e.interiorEnd);
-      if (d < min) {
-        min = d;
-        best = e;
-      }
-    }
+    const best = nearestSide(sides, { x: item.position.x, y: item.position.z });
     if (best) openings.push({ item: i, wall: best.wall });
   });
   return openings;
@@ -38,12 +30,4 @@ export function holeRect(item: PlacedItem, size: Vec3, start: Point, end: Point)
   const hy = (size.y * item.scale.y) / 2;
   const y = item.position.y;
   return { min: { x: u - hx, y: y - hy }, max: { x: u + hx, y: y + hy } };
-}
-
-function segmentDistance(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 ? Math.min(1, Math.max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }

@@ -1,12 +1,16 @@
-// next.html: the stage-2 app shell. For now a read-only viewer: pick a design, look at it in 3D.
+// next.html: the stage-2 app shell. Pick a design, edit its items in 3D.
 
 import { useProgress } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { fromDesign, type LegacyDesign } from "./core/design";
-import { Scene } from "./scene";
-import { indexCatalogue, useViewer } from "./store";
+import { settle } from "./core/placement";
+import { findRooms } from "./core/rooms";
+import type { PlacedItem, Vec3 } from "./core/types";
+import { buildEdges, wallSides } from "./core/walls";
+import { gizmoHot, Scene } from "./scene";
+import { indexCatalogue, resolveModel, useViewer, type CatalogueVariant, type GizmoMode } from "./store";
 import "./app.css";
 
 const fixtures = import.meta.glob<LegacyDesign>("./fixtures/*.design.json", { import: "default" });
@@ -69,13 +73,23 @@ function App() {
     const fromHash = () => loadSource(decodeURIComponent(location.hash.slice(1)) || DEFAULT_SOURCE);
     fromHash();
     window.addEventListener("hashchange", fromHash);
-    return () => window.removeEventListener("hashchange", fromHash);
+    // Old example.js: T / R / S pick the gizmo mode.
+    const keys: Record<string, GizmoMode> = { t: "translate", r: "rotate", s: "scale" };
+    const onKey = (e: KeyboardEvent) => {
+      const mode = keys[e.key.toLowerCase()];
+      if (mode && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)) useViewer.getState().setGizmo(mode);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("hashchange", fromHash);
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   return (
     <div className="app">
       <header>
-        <strong>Roomify</strong> <span className="muted">next · read-only viewer</span>
+        <strong>Roomify</strong> <span className="muted">next · 3D editor</span>
         <select value={source} onChange={(e) => { location.hash = e.target.value; }} aria-label="Design">
           {Object.entries(sources).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
         </select>
@@ -89,11 +103,83 @@ function App() {
       )}
       <main>
         {/* flat = no tone mapping, as r69. */}
-        <Canvas flat camera={{ fov: 45, near: 1, far: 100000 }} gl={{ preserveDrawingBuffer: true }}>
+        <Canvas
+          flat camera={{ fov: 45, near: 1, far: 100000 }} gl={{ preserveDrawingBuffer: true }}
+          onPointerMissed={(e) => { if (e.button === 0 && !gizmoHot()) useViewer.getState().select(null); }}
+        >
           <Scene key={source} />
         </Canvas>
+        <ItemPanel />
       </main>
     </div>
+  );
+}
+
+const IN = 2.54;
+const dimsToSize = (d: CatalogueVariant["dimensions"]): Vec3 | undefined => d && { x: d.width, y: d.height, z: d.depth };
+
+/** The old context menu: name, delete, size in inches, lock in place; plus gizmo mode and variant. */
+function ItemPanel() {
+  const { design, selected, models, sizes, gizmo, setGizmo, updateItem, deleteItem } = useViewer();
+  if (!design || selected === null || !design.items[selected]) return null;
+  const index = selected;
+  const item = design.items[index];
+  const url = models ? resolveModel(item, models) : undefined;
+  const size = url ? sizes[url] : undefined;
+  const variants = (item.productId && models?.variants.get(item.productId)) || [];
+
+  // Size or variant changed: put it back on the floor / its wall, as the old resized() did.
+  const edit = (next: PlacedItem, size: Vec3) => {
+    const sides = wallSides(buildEdges(design, findRooms(design)));
+    updateItem(index, { ...next, ...settle(next, size, design, sides) });
+  };
+  const resize = (axis: keyof Vec3, inches: number) => {
+    if (!size || !(inches > 0)) return;
+    edit({ ...item, scale: { ...item.scale, [axis]: (inches * IN) / size[axis] } }, size);
+  };
+  const swapVariant = (id: string) => {
+    const v = variants.find((v) => v.id === id);
+    const vSize = v?.glb ? (sizes[v.glb] ?? dimsToSize(v.dimensions)) : undefined;
+    // model_url follows the variant so the old app (which loads by model_url) shows the same one.
+    const next = { ...item, variantId: id, modelUrl: v?.model ?? v?.glb ?? item.modelUrl };
+    if (vSize) edit(next, vSize);
+    else updateItem(index, next);
+  };
+  const dims: [keyof Vec3, string][] = [["x", "Width"], ["z", "Depth"], ["y", "Height"]];
+
+  return (
+    <aside className="panel" aria-label="Selected item">
+      <strong>{item.name}</strong>
+      <div className="modes" role="group" aria-label="Gizmo">
+        {(["translate", "rotate", "scale"] as const).map((m) => (
+          <button key={m} aria-pressed={gizmo === m} onClick={() => setGizmo(m)} title={`${m} (${m[0].toUpperCase()})`}>{m}</button>
+        ))}
+      </div>
+      {variants.length > 1 && (
+        <label>Variant{" "}
+          <select value={item.variantId} onChange={(e) => swapVariant(e.target.value)}>
+            {variants.map((v) => <option key={v.id} value={v.id}>{v.label ?? v.id}</option>)}
+          </select>
+        </label>
+      )}
+      <fieldset disabled={!size}>
+        <legend>Size (inches)</legend>
+        {dims.map(([axis, label]) => {
+          const value = size ? ((size[axis] * item.scale[axis]) / IN).toFixed(0) : "";
+          return (
+            <label key={axis}>{label}{" "}
+              <input
+                key={`${index}:${value}`} type="number" min={1} defaultValue={value}
+                onBlur={(e) => e.target.value !== value && resize(axis, Number(e.target.value))}
+                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+              />
+            </label>
+          );
+        })}
+      </fieldset>
+      <label><input type="checkbox" checked={item.fixed} onChange={(e) => updateItem(index, { fixed: e.target.checked })} /> Lock in place</label>
+      <button className="danger" onClick={() => deleteItem(index)}>Delete item</button>
+    </aside>
   );
 }
 

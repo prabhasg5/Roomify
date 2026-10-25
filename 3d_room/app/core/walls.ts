@@ -107,3 +107,28 @@ export function buildEdges(design: Design, rooms: string[][]): Edges {
   });
   return { rooms: edgeRooms, walls };
 }
+
+/** Every wall side, in wall order (old floorplan.wallEdges()). */
+export const wallSides = (edges: Edges): HalfEdge[] => edges.walls.flatMap((w) => [w.front, w.back]).filter((e) => e !== null);
+
+/** The side whose interior edge is nearest to p in plan (old WallItem.closestWallEdge). */
+export function nearestSide(sides: HalfEdge[], p: Point): HalfEdge | undefined {
+  let best: HalfEdge | undefined;
+  let min = Infinity;
+  for (const e of sides) {
+    const d = segmentDistance(p, e.interiorStart, e.interiorEnd);
+    if (d < min) {
+      min = d;
+      best = e;
+    }
+  }
+  return best;
+}
+
+function segmentDistance(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  const t = len2 ? Math.min(1, Math.max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
