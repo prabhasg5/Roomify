@@ -7,6 +7,7 @@ import { cmToMeasure, deleteCorner, deleteWalls, dragCorner, dragWall, drawCorne
 import { findRooms } from "./core/rooms";
 import type { Design, Point } from "./core/types";
 import { buildEdges, type HalfEdge } from "./core/walls";
+import { CadImport } from "./dialogs";
 import { useViewer } from "./store";
 
 type Mode = "move" | "draw" | "delete";
@@ -294,6 +295,7 @@ export function Floorplanner({ shown }: { shown: boolean }) {
         <button aria-pressed={mode === "move"} onClick={() => changeMode("move")}>Move Walls</button>
         <button aria-pressed={mode === "draw"} onClick={() => changeMode("draw")}>Draw Walls</button>
         <button aria-pressed={mode === "delete"} onClick={() => changeMode("delete")}>Delete Walls</button>
+        <CadImport />
       </div>
       {mode === "draw" && <div className="hint">Press the "Esc" key to stop drawing walls</div>}
     </div>

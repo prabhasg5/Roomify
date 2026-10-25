@@ -11,6 +11,7 @@ import { settle } from "./core/placement";
 import { findRooms } from "./core/rooms";
 import type { FloorTexture, PlacedItem, Vec3, WallTexture } from "./core/types";
 import { buildEdges, wallSides } from "./core/walls";
+import { ArExport } from "./dialogs";
 import { Floorplanner } from "./plan2d";
 import { gizmoHot, Scene, surfaceUnder } from "./scene";
 import { indexCatalogue, resolveModel, useViewer, type CatalogueProduct, type CatalogueVariant, type GizmoMode } from "./store";
@@ -286,6 +287,7 @@ function FileMenu() {
       </label>
       <button onClick={saveBrowser}>Save to browser</button>
       <button onClick={saveServer}>Save to server</button>
+      <ArExport />
       <button className="warning" onClick={clearAll}>Clear all placed items</button>
       {notice && <span className="muted" role="status">{notice}</span>}
     </span>
