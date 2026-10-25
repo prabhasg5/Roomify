@@ -8,9 +8,9 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cutsWall, findOpenings, holeRect } from "./core/openings";
-import { fitsInRoom, hitWall, isFloorItem, isWallItem, placeOnWall, rotateToward, settle } from "./core/placement";
-import { findRooms } from "./core/rooms";
-import type { Design, Opening, PlacedItem, Point, Rect, Vec3, Wall } from "./core/types";
+import { fitsInRoom, hitWall, isFloorItem, isWallItem, placeOnWall, rotateToward, settle, surfaceAt } from "./core/placement";
+import { findRooms, roomKey } from "./core/rooms";
+import type { Design, Opening, PlacedItem, Point, Rect, Surface, Vec3, Wall } from "./core/types";
 import { buildEdges, nearestSide, wallSides, type Edges, type HalfEdge } from "./core/walls";
 import { resolveModel, useViewer, type GizmoMode } from "./store";
 
@@ -29,6 +29,10 @@ type Live = { index: number; item: PlacedItem } | null;
 // The one gizmo on screen, so a click on its handles neither selects nor deselects through it.
 let gizmo: { axis: string | null } | null = null;
 export const gizmoHot = () => gizmo?.axis != null;
+
+// The wall side or floor under a click that hit no item (set by SurfacePicker, which has the camera).
+let picker: ((e: MouseEvent) => Surface | null) | null = null;
+export const surfaceUnder = (e: MouseEvent) => picker?.(e) ?? null;
 
 const DEFAULT_FLOOR = { url: "rooms/textures/hardwood.png", scale: 400 };
 const fillerMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, side: THREE.DoubleSide });
@@ -67,10 +71,11 @@ export function Scene() {
       {design && plan && (
         <>
           <CenterCamera corners={design.corners} />
+          <SurfacePicker plan={plan} walls={design.walls} />
           <Report what="floor/wall textures">
             <Suspense fallback={null}>
               {plan.edges.rooms.map((room, i) => (
-                <Floor key={i} room={room} texture={design.floorTextures[[...plan.rooms[i]].sort().join(",")] ?? DEFAULT_FLOOR} />
+                <Floor key={i} room={room} texture={design.floorTextures[roomKey(plan.rooms[i])] ?? DEFAULT_FLOOR} />
               ))}
               <Walls design={design} plan={plan} openings={openings} urls={urls} visible={wallVisible} live={live} />
             </Suspense>
@@ -99,7 +104,10 @@ export function Scene() {
   );
 }
 
-/** Old centerCamera(): look at the plan's bbox centre from (0, d, d) above it, d = depth × 1.5. */
+/**
+ * Old centerCamera(): look at the plan's bbox centre from (0, d, d) above it, d = depth × 1.5.
+ * Once per load (Scene is keyed by source), so 2D edits don't throw away the 3D camera.
+ */
 function CenterCamera({ corners }: { corners: Point[] }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
@@ -113,7 +121,23 @@ function CenterCamera({ corners }: { corners: Point[] }) {
     controls.target.set(cx, 150, cz);
     camera.position.set(cx, 150 + d, cz + d);
     controls.update();
-  }, [corners, controls, camera]);
+  }, [controls, camera]); // not corners: on load only
+  return null;
+}
+
+function SurfacePicker({ plan, walls }: { plan: Plan; walls: Wall[] }) {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    const ray = new THREE.Raycaster();
+    const floors = plan.floors.map((poly, i) => ({ key: roomKey(plan.rooms[i]), poly }));
+    picker = (e) => {
+      const r = gl.domElement.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      return surfaceAt(ray.ray.origin, ray.ray.direction, plan.sides, walls, floors);
+    };
+    return () => { picker = null; };
+  }, [plan, walls, camera, gl]);
   return null;
 }
 

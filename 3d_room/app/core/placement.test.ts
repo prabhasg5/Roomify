@@ -5,8 +5,8 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { fromDesign, toDesign } from "./design";
 import { findOpenings } from "./openings";
-import { fitsInRoom, hitWall, placeOnWall, rotateToward, settle } from "./placement";
-import { findRooms } from "./rooms";
+import { fitsInRoom, hitWall, placeNew, placeOnWall, rotateToward, settle, surfaceAt } from "./placement";
+import { findRooms, roomKey } from "./rooms";
 import { buildEdges, nearestSide, wallSides } from "./walls";
 
 const legacy = JSON.parse(fs.readFileSync(path.join(__dirname, "../fixtures/furnished-room.design.json"), "utf8"));
@@ -76,4 +76,34 @@ test("an edited design round-trips through the wire format and keeps its door on
   expect(back).toEqual(edited);
   expect(toDesign(edited).items[0]).toMatchObject({ xpos: moved.position.x, rotation: moved.rotation.y, product_id: "closed-door", variant_id: "default" });
   expect(findOpenings(back, edges)[0]).toEqual(findOpenings(design, edges)[0]);
+});
+
+test("a new floor item sits at the plan's bbox centre, on the floor; a new door in the side nearest the origin", () => {
+  const xs = design.corners.map((c) => c.x);
+  const ys = design.corners.map((c) => c.y);
+  const fresh = { ...sofa, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } };
+  const p = placeNew(fresh, SOFA, design, sides);
+  expect(p.position).toEqual({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: SOFA.y / 2, z: (Math.min(...ys) + Math.max(...ys)) / 2 });
+
+  const d = placeNew({ ...fresh, type: door.type }, DOOR, design, sides);
+  const edge = nearestSide(sides, { x: 0, y: 0 })!;
+  const mid = { x: (edge.interiorStart.x + edge.interiorEnd.x) / 2, y: (edge.interiorStart.y + edge.interiorEnd.y) / 2 };
+  expect(nearestSide(sides, { x: d.position.x, y: d.position.z })).toBe(edge);
+  near(d.position.y, DOOR.y / 2 + 0.01); // in-wall-floor: on the floor
+  near(Math.hypot(d.position.x - mid.x, d.position.z - mid.y), design.walls[edge.wall].thickness / 2 - 0.5); // centred, in the wall
+});
+
+test("a click on no item picks the wall side seen from inside first, then the floor under it", () => {
+  const floors = edges.rooms.map((r, i) => ({ key: roomKey(findRooms(design)[i]), poly: r.map((e) => e.interiorStart) }));
+  const e = sides[0];
+  const mid = { x: (e.interiorStart.x + e.interiorEnd.x) / 2, z: (e.interiorStart.y + e.interiorEnd.y) / 2 };
+  const c = rooms[0].reduce((a, p) => ({ x: a.x + p.x / rooms[0].length, y: a.y + p.y / rooms[0].length }), { x: 0, y: 0 });
+  // From the room's middle at eye height, look at the side's middle: that wall side.
+  const from = { x: c.x, y: 150, z: c.y };
+  const toward = { x: mid.x - c.x, y: 0, z: mid.z - c.y };
+  expect(surfaceAt(from, toward, sides, design.walls, floors)).toEqual({ kind: "wall", wall: e.wall, front: e.front });
+  // Straight down from above the middle: the floor.
+  expect(surfaceAt({ x: c.x, y: 500, z: c.y }, { x: 0, y: -1, z: 0 }, sides, design.walls, floors)).toEqual({ kind: "floor", room: floors[0].key });
+  // Straight up: nothing.
+  expect(surfaceAt(from, { x: 0, y: 1, z: 0 }, sides, design.walls, floors)).toBeNull();
 });

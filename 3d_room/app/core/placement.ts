@@ -4,7 +4,7 @@
 // Item-on-item collision is commented out in the old engine, so there is none here either.
 
 import { cutsWall } from "./openings";
-import { ItemType, type Design, type PlacedItem, type Point, type Vec3, type Wall } from "./types";
+import { ItemType, type Design, type PlacedItem, type Point, type Surface, type Vec3, type Wall } from "./types";
 import { nearestSide, type HalfEdge } from "./walls";
 
 /** Floor (1) and on-floor (8) items: dragged on the floor, rotated with the arrow. */
@@ -104,6 +104,41 @@ export function settle(item: PlacedItem, size: Vec3, design: Design, sides: Half
   if (isFloorItem(item)) return { position: { ...item.position, y: (size.y * item.scale.y) / 2 } };
   const edge = nearestSide(sides, { x: item.position.x, y: item.position.z });
   return edge ? placeOnWall(item, size, edge, design.walls[edge.wall], item.position) : {};
+}
+
+/**
+ * Where a new item goes (old placeInRoom, no position given): floor items at the centre of the
+ * plan's bounding box, resting on the floor; wall items at the middle of the wall side nearest
+ * the origin (where an unplaced old item sat), half way up the wall, then bounded as on a drag.
+ */
+export function placeNew(item: PlacedItem, size: Vec3, design: Design, sides: HalfEdge[]): Pick<PlacedItem, "position" | "rotation"> {
+  if (!isWallItem(item)) {
+    const xs = design.corners.map((c) => c.x);
+    const ys = design.corners.map((c) => c.y);
+    const x = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
+    const z = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : 0;
+    return { position: { x, y: (size.y * item.scale.y) / 2, z }, rotation: item.rotation };
+  }
+  const edge = nearestSide(sides, { x: 0, y: 0 });
+  if (!edge) return { position: item.position, rotation: item.rotation };
+  const wall = design.walls[edge.wall];
+  const at = { x: (edge.interiorStart.x + edge.interiorEnd.x) / 2, y: wall.height / 2, z: (edge.interiorStart.y + edge.interiorEnd.y) / 2 };
+  return placeOnWall(item, size, edge, wall, at);
+}
+
+/**
+ * What a click on no item hits (old controller checkWallsAndFloors): a wall side seen from its
+ * interior first, wherever it is, then a room's floor.
+ * @param floors each room's key and interior polygon.
+ */
+export function surfaceAt(origin: Vec3, dir: Vec3, sides: HalfEdge[], walls: Wall[], floors: { key: string; poly: Point[] }[]): Surface | null {
+  const hit = hitWall(origin, dir, sides, walls);
+  if (hit) return { kind: "wall", wall: hit.edge.wall, front: hit.edge.front };
+  if (dir.y >= 0) return null;
+  const t = -origin.y / dir.y;
+  const p = { x: origin.x + t * dir.x, y: origin.z + t * dir.z };
+  const room = floors.find((f) => pointInPolygon(p, f.poly));
+  return room ? { kind: "floor", room: room.key } : null;
 }
 
 // Even-odd ray cast. (The old Utils.pointInPolygon always cast from (0, 0), wrong for rooms around it.)

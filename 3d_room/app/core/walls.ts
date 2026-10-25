@@ -125,10 +125,16 @@ export function nearestSide(sides: HalfEdge[], p: Point): HalfEdge | undefined {
   return best;
 }
 
-function segmentDistance(p: Point, a: Point, b: Point): number {
+/** The point of segment a–b nearest to p (old Utils.closestPointOnLine). */
+export function closestOnSegment(p: Point, a: Point, b: Point): Point {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len2 = dx * dx + dy * dy;
   const t = len2 ? Math.min(1, Math.max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  return { x: a.x + t * dx, y: a.y + t * dy };
+}
+
+export function segmentDistance(p: Point, a: Point, b: Point): number {
+  const q = closestOnSegment(p, a, b);
+  return Math.hypot(p.x - q.x, p.y - q.y);
 }

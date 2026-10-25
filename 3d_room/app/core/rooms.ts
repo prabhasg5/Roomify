@@ -4,6 +4,9 @@
 import type { Design, Point } from "./types";
 import { angle2pi } from "./walls";
 
+/** A room's key for its floor texture (old Room.getUuid): sorted corner ids joined by ",". */
+export const roomKey = (ids: string[]) => [...ids].sort().join(",");
+
 /** Each room as its corner ids, CCW, in the old engine's order. */
 export function findRooms(design: Design): string[][] {
   const pos = new Map(design.corners.map((c) => [c.id, c]));

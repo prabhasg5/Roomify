@@ -80,3 +80,6 @@ export interface Rect {
   min: Point;
   max: Point;
 }
+
+/** What a texture goes on: one side of a wall, or a room's floor (by its room key). */
+export type Surface = { kind: "wall"; wall: number; front: boolean } | { kind: "floor"; room: string };

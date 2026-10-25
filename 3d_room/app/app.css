@@ -1,7 +1,7 @@
 html, body, #root { margin: 0; height: 100%; }
 body { font: 14px/1.4 system-ui, sans-serif; color: #222; background: #fff; }
 .app { display: flex; flex-direction: column; height: 100%; }
-header { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
 .muted { color: #777; }
 .errors { margin: 0; padding: 8px 12px 8px 32px; background: #fdecea; color: #8a1c13; border-bottom: 1px solid #f5c2bd; }
 main { flex: 1; min-height: 0; position: relative; }
@@ -14,3 +14,50 @@ main { flex: 1; min-height: 0; position: relative; }
 .modes button { flex: 1; text-transform: capitalize; }
 .modes button[aria-pressed=true] { background: #337ab7; color: #fff; border-color: #2e6da4; }
 .danger { background: #d9534f; color: #fff; border: 1px solid #d43f3a; padding: 6px; border-radius: 3px; }
+.tabs { display: flex; gap: 4px; }
+.tabs button[aria-selected=true] { background: #337ab7; color: #fff; border-color: #2e6da4; }
+
+/* 2D floorplanner: old floorplanner_view.ts colours and sizes. Strokes are screen px
+   (non-scaling); radii and text scale by --px (cm per screen px), set with the zoom. */
+.plan2d { position: absolute; inset: 0; overflow: hidden; user-select: none; background-color: #fff;
+  background-image: linear-gradient(#f1f1f1 1px, transparent 1px), linear-gradient(90deg, #f1f1f1 1px, transparent 1px);
+  background-size: 20px 20px; }
+.plan2d svg { display: block; width: 100%; height: 100%; touch-action: none; }
+.plan2d line, .plan2d polygon { vector-effect: non-scaling-stroke; }
+.plan2d .rooms polygon { fill: #f9f9f9; pointer-events: none; }
+.plan2d .wall .line { stroke: #ddd; stroke-width: 5; }
+.plan2d .wall .hit { stroke: transparent; stroke-width: 10; }
+.plan2d .wall .edge { fill: none; stroke: #888; stroke-width: 1; pointer-events: none; }
+.plan2d .wall:hover .line, .plan2d .wall.active .line { stroke: #008cba; stroke-width: 7; }
+.plan2d .wall:hover .edge, .plan2d .wall.active .edge { display: none; }
+.plan2d .corners circle { r: calc(7px * var(--px)); fill: transparent; }
+.plan2d .corners circle:hover, .plan2d .corners circle.active { fill: #008cba; }
+.plan2d.delete .wall:hover .line { stroke: #f00; }
+.plan2d.delete .corners circle:hover { fill: #f00; }
+.plan2d.draw .walls, .plan2d.draw .corners { pointer-events: none; }
+.plan2d .target { pointer-events: none; }
+.plan2d:not(.draw) .target { display: none; }
+.plan2d .target line { stroke: #008cba; stroke-width: 7; }
+.plan2d .target circle { r: calc(7px * var(--px)); fill: #008cba; }
+.plan2d .labels text { pointer-events: none; font-family: Arial, sans-serif; font-size: calc(12px * var(--px));
+  text-anchor: middle; dominant-baseline: middle; fill: #000;
+  stroke: #fff; stroke-width: calc(4px * var(--px)); paint-order: stroke; stroke-linejoin: round; }
+.plan2d .tools { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; }
+.plan2d .tools button[aria-pressed=true] { background: #337ab7; color: #fff; border-color: #2e6da4; }
+.plan2d .hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  padding: 6px 12px; background: rgba(0,0,0,.7); color: #fff; border-radius: 4px; pointer-events: none; }
+
+/* File menu, catalogue (old "Add Items" tab) and texture picker (old "Adjust Wall/Floor"). */
+.file-menu { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.file-menu .button { padding: 1px 6px; border: 1px solid #767676; border-radius: 3px; background: #efefef; cursor: pointer; }
+.warning { background: #f0ad4e; border: 1px solid #eea236; border-radius: 3px; }
+.catalogue { position: absolute; inset: 0; overflow: auto; padding: 12px; background: #fff;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; }
+.card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;
+  background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+.card:hover { border-color: #337ab7; }
+.card img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.price { color: #3c763d; font-weight: 600; }
+.textures { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.textures button { padding: 2px; background: #fff; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
+.textures img { width: 100%; display: block; }

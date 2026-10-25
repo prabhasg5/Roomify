@@ -37,7 +37,7 @@ export interface LegacyDesign {
 // The wire format carries neither, so every wall gets the old engine's defaults (configuration.ts).
 export const DEFAULT_WALL_HEIGHT = 250;
 export const DEFAULT_WALL_THICKNESS = 10;
-const defaultWallTexture = (): WallTexture => ({ url: "rooms/textures/wallmap.png", stretch: true, scale: 0 });
+export const defaultWallTexture = (): WallTexture => ({ url: "rooms/textures/wallmap.png", stretch: true, scale: 0 });
 
 export function fromDesign(legacy: LegacyDesign): Design {
   const fp = legacy.floorplan;
