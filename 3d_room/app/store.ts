@@ -14,6 +14,26 @@ export interface CatalogueVariant {
   thumbnail?: string;
   dimensions?: { width: number; height: number; depth: number };
   price_delta?: number;
+  /** cm per GLB unit, when not 1: an upload is stored as uploaded, so the renderer scales it. */
+  unit_scale?: number;
+  /** Measured by the server on upload. */
+  stats?: ModelStats;
+}
+export interface ModelStats {
+  triangles: number;
+  textures: { width: number | null; height: number | null; mime_type: string | null }[];
+  bytes: number;
+}
+
+/** Why a model may be slow to load or render; [] = fine. Warned about, never altered. */
+export function heavy(stats: ModelStats | undefined): string[] {
+  if (!stats) return [];
+  const big = stats.textures.filter((t) => Math.max(t.width ?? 0, t.height ?? 0) > 2048);
+  return [
+    stats.triangles > 100_000 && `${stats.triangles.toLocaleString("en")} triangles`,
+    big.length > 0 && `${big.length} texture${big.length > 1 ? "s" : ""} over 2048 px (${big.map((t) => `${t.width}×${t.height}`).join(", ")})`,
+    stats.bytes > 20 * 1024 * 1024 && `${(stats.bytes / 1024 / 1024).toFixed(1)} MB`,
+  ].filter((r): r is string => !!r);
 }
 export interface CatalogueProduct {
   id: string;
@@ -30,12 +50,15 @@ export interface ModelIndex {
   byModel: Map<string, string>;
   /** product_id → its variants with a GLB, for the variant picker. */
   variants: Map<string, CatalogueVariant[]>;
+  /** GLB url → cm per unit, for the GLBs that aren't in cm. */
+  units: Map<string, number>;
 }
 
 export function indexCatalogue(cat: { products: CatalogueProduct[] }): ModelIndex {
   const byId = new Map<string, string>();
   const byModel = new Map<string, string>();
   const variants = new Map<string, CatalogueVariant[]>();
+  const units = new Map<string, number>();
   for (const p of cat.products) {
     variants.set(p.id, p.variants.filter((v) => v.glb));
     for (const v of p.variants) {
@@ -43,18 +66,22 @@ export function indexCatalogue(cat: { products: CatalogueProduct[] }): ModelInde
       byId.set(`${p.id}/${v.id}`, v.glb);
       if (v.model) byModel.set(v.model, v.glb);
       byModel.set(v.glb, v.glb);
+      if (v.unit_scale && v.unit_scale !== 1) units.set(v.glb, v.unit_scale);
     }
   }
-  return { byId, byModel, variants };
+  return { byId, byModel, variants, units };
 }
 
-/** Catalogue ids first; model_url only as a fallback key; a bare .glb url loads directly. */
+/**
+ * Catalogue ids first; model_url only as a fallback key; a bare .glb url loads directly, but only
+ * for items without ids: an id the catalogue no longer has (a deleted upload) is reported missing.
+ */
 export function resolveModel(item: PlacedItem, index: ModelIndex): string | undefined {
   return (
     index.byId.get(`${item.productId}/${item.variantId}`) ??
     (item.modelUrl ? index.byModel.get(item.modelUrl) : undefined) ??
     item.glbUrl ??
-    (item.modelUrl?.endsWith(".glb") ? item.modelUrl : undefined)
+    (item.modelUrl?.endsWith(".glb") && !item.productId ? item.modelUrl : undefined)
   );
 }
 

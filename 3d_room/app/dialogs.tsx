@@ -1,11 +1,16 @@
-// The two modal flows from the old example.js mainControls: CAD import (cad-import-modal) and
-// Export to AR (ar-modal). Native <dialog>s; the importers are the ESM copies in core/.
+// The modal flows from the old app: CAD import (cad-import-modal) and Export to AR (ar-modal)
+// from example.js mainControls, model upload (upload-model-modal) from model-upload.js.
+// Native <dialog>s; the importers are the ESM copies in core/.
 
-import { useRef, useState, type ReactNode } from "react";
+import { useGLTF } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import * as THREE from "three";
 import { CADImporter, type CadEntity, type CadHeader, type CadUnit } from "./core/cad-importer.js";
 import { fromDesign, toDesign } from "./core/design";
 import { DWGImporter } from "./core/dwg-importer.js";
-import { useViewer } from "./store";
+import { Report } from "./scene";
+import { heavy, useViewer, type CatalogueProduct } from "./store";
 
 const STORAGE_KEY = "ar_room_design";
 
@@ -260,4 +265,181 @@ export function ArExport() {
       </Modal>
     </>
   );
+}
+
+const ITEM_TYPES: [number, string][] = [
+  [1, "Floor Item (furniture, lamps, etc.)"], [2, "Wall Item (pictures, shelves, etc.)"], [3, "In-Wall Item (windows)"],
+  [7, "In-Wall Floor Item (doors)"], [8, "On-Floor Item (rugs, carpets)"], [9, "Wall-Floor Item"],
+];
+const SCALES: [string, string][] = [
+  ["auto", "Auto-detect (recommended)"], ["100", "Meters → Centimeters (×100)"], ["10", "Decimeters → Centimeters (×10)"],
+  ["1", "No scaling (×1)"], ["2.54", "Inches → Centimeters (×2.54)"], ["30.48", "Feet → Centimeters (×30.48)"],
+];
+
+/** Old model-upload.js: "Couch_v2.glb" → "Couch V2". */
+const nameFrom = (file: string) => file.replace(/\.(glb|gltf)$/i, "").replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Old "Upload 3D Model" (minus Texture Image): POST /api/uploads, which stores the GLB as uploaded.
+ * The model is previewed in a small canvas first; that render is the thumbnail unless one is picked.
+ */
+export function ModelUpload({ onUploaded }: { onUploaded: (product: CatalogueProduct) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const [model, setModel] = useState<{ file: File; url: string } | null>(null);
+  const [name, setName] = useState("");
+  const [type, setType] = useState("1");
+  const [scale, setScale] = useState("auto");
+  const [thumb, setThumb] = useState<File | null>(null);
+  const [preview, setPreview] = useState<"loading" | "ready" | "failed">("loading");
+  const [progress, setProgress] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+
+  const pickModel = (file: File | undefined) => {
+    if (model) URL.revokeObjectURL(model.url);
+    setModel(file ? { file, url: URL.createObjectURL(file) } : null);
+    setPreview("loading");
+    setError("");
+    if (file && !name) setName(nameFrom(file.name));
+  };
+  const open = () => {
+    form.current?.reset(); // old resetUploadForm()
+    pickModel(undefined);
+    setName("");
+    setType("1");
+    setScale("auto");
+    setThumb(null);
+    setProgress(null);
+    setDone("");
+    dialog.current?.showModal();
+  };
+
+  const submit = async () => {
+    setError("");
+    setDone("");
+    if (!model) return setError("Please select a .glb file");
+    if (!name.trim()) return setError("Please enter a display name");
+    if (!/\.glb$/i.test(model.file.name)) return setError("Only .glb files are supported");
+    const body = new FormData();
+    body.append("model", model.file);
+    body.append("name", name.trim());
+    body.append("type", type);
+    body.append("scale", scale);
+    const rendered = thumb ?? (await new Promise<Blob | null>((r) => canvas.current ? canvas.current.toBlob(r, "image/png") : r(null)));
+    if (rendered) body.append("thumbnail", rendered, thumb?.name ?? "thumbnail.png");
+    setProgress(0);
+    try {
+      const res = await post("/api/uploads", body, setProgress);
+      if (res.status !== 200) {
+        const d = res.body.detail;
+        throw new Error(typeof d === "string" ? d : Array.isArray(d) ? `${d[0]?.loc?.join(".")}: ${d[0]?.msg}` : `HTTP ${res.status}`);
+      }
+      const product = res.body as CatalogueProduct;
+      const warn = heavy(product.variants[0]?.stats);
+      setDone(`Model "${product.name}" added to the catalogue as ${product.id}.` +
+        (warn.length ? ` Heavy model (${warn.join(", ")}): it may load slowly; it is stored unchanged.` : ""));
+      onUploaded(product);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  return (
+    <>
+      <button className="info upload" onClick={open}>Upload 3D model (.glb)</button>
+      <Modal
+        dialog={dialog} title="Upload 3D Model" onClose={() => pickModel(undefined)}
+        footer={<>
+          <button onClick={() => dialog.current?.close()}>Close</button>
+          <button className="success" onClick={submit} disabled={progress !== null || (!!model && preview !== "ready")}>Upload &amp; add</button>
+        </>}
+      >
+        <form ref={form} onSubmit={(e) => e.preventDefault()} className="upload-form">
+          <label>3D Model File (.glb)
+            <input type="file" accept=".glb" onChange={(e) => pickModel(e.target.files?.[0])} />
+            <small className="muted">Max file size: 100MB. Stored exactly as uploaded.</small>
+          </label>
+          {model && (
+            <div className="preview">
+              <Canvas
+                flat gl={{ preserveDrawingBuffer: true }} camera={{ fov: 45 }} frameloop="demand"
+                onCreated={({ gl }) => { canvas.current = gl.domElement; }}
+              >
+                <hemisphereLight args={[0xffffff, 0x888888, 1.1 * Math.PI]} position={[0, 300, 0]} />
+                <Report what={model.file.name} onError={(m) => { setPreview("failed"); setError(`Can't load this model: ${m}`); }}>
+                  <Suspense fallback={null}>
+                    <Preview url={model.url} onReady={() => setPreview("ready")} />
+                  </Suspense>
+                </Report>
+              </Canvas>
+              {preview === "loading" && <span className="muted">Loading preview…</span>}
+            </div>
+          )}
+          <label>Display Name
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Modern Chair" />
+          </label>
+          <label>Item Type
+            <select value={type} onChange={(e) => setType(e.target.value)}>
+              {ITEM_TYPES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+            </select>
+          </label>
+          <label>Thumbnail Image (optional)
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setThumb(e.target.files?.[0] ?? null)} />
+            <small className="muted">If not provided, the preview above is used.</small>
+          </label>
+          <label>Scale
+            <select value={scale} onChange={(e) => setScale(e.target.value)}>
+              {SCALES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+            </select>
+            <small className="muted">If the model appears too small or too large, try a different scale option.</small>
+          </label>
+        </form>
+        {progress !== null && (
+          <p><progress value={progress} /> {progress < 1 ? `Uploading… ${Math.round(progress * 100)}%` : "Measuring…"}</p>
+        )}
+        {done && <p className="notice" role="status">{done}</p>}
+        {error && <p className="error" role="alert">Error: {error}</p>}
+      </Modal>
+    </>
+  );
+}
+
+/** The model framed from the front-right, above: the thumbnail. */
+function Preview({ url, onReady }: { url: string; onReady: () => void }) {
+  const { scene } = useGLTF(url);
+  const { camera, invalidate } = useThree();
+  useEffect(() => () => useGLTF.clear(url), [url]);
+  useLayoutEffect(() => {
+    const box = new THREE.Box3().setFromObject(scene, true);
+    const centre = box.getCenter(new THREE.Vector3());
+    const d = box.getBoundingSphere(new THREE.Sphere()).radius / Math.sin(THREE.MathUtils.degToRad(22.5));
+    camera.position.copy(centre).add(new THREE.Vector3(0.6, 0.5, 1).normalize().multiplyScalar(d));
+    camera.near = d / 100;
+    camera.far = d * 100;
+    camera.lookAt(centre);
+    camera.updateProjectionMatrix();
+    invalidate();
+    requestAnimationFrame(onReady); // after that frame is drawn
+  }, [scene, camera]);
+  return <primitive object={scene} />;
+}
+
+/** fetch has no upload progress; XHR does (old model-upload.js showed it). */
+function post(url: string, body: FormData, onProgress: (fraction: number) => void) {
+  return new Promise<{ status: number; body: any }>((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", url);
+    x.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    x.onload = () => {
+      let parsed = {};
+      try { parsed = JSON.parse(x.responseText); } catch { /* not JSON: status says enough */ }
+      resolve({ status: x.status, body: parsed });
+    };
+    x.onerror = () => reject(new Error("Could not reach the server"));
+    x.send(body);
+  });
 }

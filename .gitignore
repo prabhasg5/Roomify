@@ -65,6 +65,7 @@ desktop.ini
 3d_room/ar_view/designs/
 3d_room/uploads/
 3d_room/uploads-debug/
+3d_room/example/models/uploads/
 
 # Parked 2D image-generation app (no longer in use) — its local data
 parked/2d_image_generation/*.db

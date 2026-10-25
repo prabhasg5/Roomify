@@ -92,3 +92,15 @@ dialog.modal input:not([type=checkbox]), dialog.modal select { width: 100%; box-
 .center { text-align: center; margin: 0; }
 .url { display: flex; gap: 4px; }
 .loading { text-align: center; padding: 30px; }
+
+/* Model upload (old upload-model-modal) and heavy-model warnings. */
+.catalogue .upload { grid-column: 1 / -1; justify-self: start; padding: 6px 12px; cursor: pointer; }
+.upload-form { display: flex; flex-direction: column; gap: 10px; }
+.upload-form label { display: flex; flex-direction: column; gap: 4px; }
+.preview { position: relative; width: 256px; height: 256px; border: 1px solid #ddd; border-radius: 4px; align-self: center; }
+.preview span { position: absolute; inset: 0; display: grid; place-items: center; }
+.heavy { color: #8a6d3b; background: #fcf8e3; border-radius: 3px; padding: 0 4px; font-size: 12px; }
+p.error { color: #a94442; background: #f2dede; padding: 6px 8px; border-radius: 3px; margin: 0; }
+.card-wrap { position: relative; display: grid; }
+.card-wrap .remove { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border: 0; border-radius: 11px;
+  background: #d9534f; color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }

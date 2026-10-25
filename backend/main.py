@@ -1,8 +1,8 @@
 """Roomify backend — the catalogue, designs, and the AR view.
 
 Serves 3d_room/example/catalogue.json (built by tools/build-catalogue.js) with
-prices merged in from backend/data/prices.db, accepts saved designs, and
-serves 3d_room/ar_view/ to the phone. The Pydantic models below ARE the schema:
+prices merged in from backend/data/prices.db and uploaded models appended,
+accepts model uploads and saved designs, and serves 3d_room/ar_view/ to the phone. The Pydantic models below ARE the schema:
 a catalogue or a design that does not validate fails here rather than in the agent.
 
 Product/variant ids are a PUBLISHED CONTRACT (saved designs record them) — this
@@ -22,18 +22,22 @@ Both from this directory; `npm run dev` in 3d_room/ starts both.
 from __future__ import annotations
 
 import json
+import os
 import re
 import socket
 import sqlite3
+from struct import error as struct_error
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, ValidationError
+
+import glb
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "3d_room" / "example"
@@ -41,6 +45,9 @@ AR_VIEW = ROOT / "3d_room" / "ar_view"
 CATALOGUE = EXAMPLE / "catalogue.json"
 PRICE_DB = Path(__file__).resolve().parent / "data" / "prices.db"
 DESIGNS = AR_VIEW / "models"
+# Uploaded models: <id>.glb as uploaded, its thumbnail, and uploads.json (their catalogue
+# products). Under example/ so the app fetches them from Vite like the catalogue's own GLBs.
+UPLOADS = EXAMPLE / "models" / "uploads"
 
 # Baked into the QR code and /network-info, so they are the ports the phone is
 # told to use. 8002 is the one the AR flow has always advertised.
@@ -55,11 +62,26 @@ class Dimensions(BaseModel):
     depth: float
 
 
+class TextureSize(BaseModel):
+    width: int | None
+    height: int | None
+    mime_type: str | None
+
+
+class ModelStats(BaseModel):
+    """Measured on upload, so the app can warn about a heavy model instead of altering it."""
+    triangles: int
+    textures: list[TextureSize]
+    bytes: int
+
+
 class Variant(BaseModel):
     id: str
     label: str
-    model: str
+    model: str | None = None            # legacy r69 mesh; uploads have none
     glb: str | None = None
+    unit_scale: float | None = None     # cm per GLB unit when not 1 (an upload stored as-is)
+    stats: ModelStats | None = None
     thumbnail: str | None = None
     dimensions: Dimensions | None = None
     price_delta: float = 0
@@ -150,17 +172,37 @@ def merge_price(product: Product, prices: dict[str, tuple[float, float]]) -> Non
 
 
 # ── loading (mtime-cached: build-catalogue.js reruns often in dev) ───────────
-_cache: tuple[float, Catalogue] | None = None
+_cache: tuple[tuple[float, float], Catalogue] | None = None
+
+
+def uploads_file() -> Path:
+    return UPLOADS / "uploads.json"
+
+
+def load_uploads() -> list[dict]:
+    """Uploaded products, plus {"id", "deleted"} for deleted ones: their ids stay taken."""
+    f = uploads_file()
+    return json.loads(f.read_text()) if f.exists() else []
+
+
+def save_uploads(uploads: list[dict]) -> None:
+    tmp = uploads_file().with_suffix(".tmp")
+    tmp.write_text(json.dumps(uploads, indent=2))
+    os.replace(tmp, uploads_file())
 
 
 def get_catalogue() -> Catalogue:
     global _cache
     try:
-        mtime = CATALOGUE.stat().st_mtime
+        mtime = (CATALOGUE.stat().st_mtime,
+                 uploads_file().stat().st_mtime if uploads_file().exists() else 0)
     except FileNotFoundError:
         raise HTTPException(503, f"catalogue not built: {CATALOGUE} is missing")
     if _cache is None or _cache[0] != mtime:
         data = Catalogue.model_validate(json.loads(CATALOGUE.read_text()))
+        data.products += [Product.model_validate(p) for p in load_uploads() if "deleted" not in p]
+        data.catalogue.product_count = len(data.products)   # what this response holds
+        data.catalogue.variant_count = sum(len(p.variants) for p in data.products)
         prices = load_prices()
         for product in data.products:
             merge_price(product, prices)
@@ -201,6 +243,112 @@ def product(product_id: str) -> Product:
         if p.id == product_id:
             return p
     raise HTTPException(404, f"unknown product id: {product_id}")
+
+
+# ── model upload ─────────────────────────────────────────────────────────────
+# The GLB is stored byte-identical to the upload: no simplify, no texture resize, no
+# re-encode (stage 2 exists because a conversion changed how uploads look). The server
+# only validates, measures and records; the app warns about heavy models.
+MAX_MODEL = 100 * 1024 * 1024
+MAX_THUMBNAIL = 5 * 1024 * 1024
+PLACEMENT = {1: "floor", 2: "wall", 3: "in_wall", 7: "in_wall_floor", 8: "on_floor", 9: "wall_floor"}
+SCALES = {"auto": None, "100": 100.0, "10": 10.0, "1": 1.0, "2.54": 2.54, "30.48": 30.48}
+THUMB_EXT = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
+
+
+async def read_capped(f: UploadFile, cap: int, what: str) -> bytes:
+    data = bytearray()
+    while chunk := await f.read(1 << 20):
+        data += chunk
+        if len(data) > cap:
+            raise HTTPException(413, f"{what} exceeds the {cap // (1024 * 1024)} MB limit")
+    return bytes(data)
+
+
+def slug(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+@app.post("/api/uploads", response_model=Product)
+async def upload(
+    model: UploadFile = File(...),
+    name: str = Form(...),
+    type: int = Form(1),
+    scale: str = Form("auto", description="cm per model unit, or auto (old computeAutoScale)"),
+    thumbnail: UploadFile | None = File(None, description="PNG/JPEG/WebP; the app renders one"),
+) -> Product:
+    """Add an uploaded model to the catalogue. Its product id is a published contract:
+    designs save it, so it is assigned once here and never renamed."""
+    name = name.strip()
+    if not name or len(name) > 100:
+        raise HTTPException(422, "Please enter a display name (at most 100 characters)")
+    if type not in PLACEMENT:
+        raise HTTPException(422, f"unknown item type {type}")
+    if scale not in SCALES:
+        raise HTTPException(422, f"unknown scale {scale!r}")
+    data = await read_capped(model, MAX_MODEL, "Model")
+    try:
+        g = glb.Glb(data)
+        lo, hi = g.bounds()
+        stats = ModelStats(triangles=g.triangles(), textures=g.textures(), bytes=g.size)
+    except glb.GlbError as e:
+        raise HTTPException(422, str(e))
+    except (KeyError, IndexError, TypeError, ValueError, struct_error) as e:
+        raise HTTPException(422, f"GLB is malformed ({e.__class__.__name__}: {e})")
+    size = [b - a for a, b in zip(lo, hi)]
+    unit = SCALES[scale] or glb.auto_scale(size)
+    thumb = await read_capped(thumbnail, MAX_THUMBNAIL, "Thumbnail") if thumbnail else b""
+    ext = THUMB_EXT.get(glb.sniff(thumb)) if thumb else None
+    if thumb and not ext:
+        raise HTTPException(422, "Thumbnail must be a PNG, JPEG or WebP image")
+
+    # No await from here on, so two uploads can't both claim one id (one event loop).
+    # ponytail: single-process only; a lock or a db row if uploads ever run multi-worker.
+    uploads = load_uploads()
+    # A deleted upload's id stays taken, so a new upload never takes over designs that used it.
+    taken = {p.id for p in get_catalogue().products} | {p["id"] for p in uploads}
+    base = slug(name) or "upload"
+    pid, n = base, 2
+    while pid in taken:
+        pid, n = f"{base}-{n}", n + 1
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    (UPLOADS / f"{pid}.glb").write_bytes(data)
+    if ext:
+        (UPLOADS / f"{pid}.{ext}").write_bytes(thumb)
+    product = Product(
+        id=pid, name=name, category="uncategorised", placement=PLACEMENT[type], item_type=type,
+        variants=[Variant(
+            id="default", label="Default", glb=f"models/uploads/{pid}.glb",
+            thumbnail=f"models/uploads/{pid}.{ext}" if ext else None,
+            dimensions=Dimensions(width=r1(size[0] * unit), height=r1(size[1] * unit), depth=r1(size[2] * unit)),
+            unit_scale=unit if unit != 1 else None, stats=stats, source="upload",
+        )],
+    )
+    uploads.append(product.model_dump(exclude_none=True, exclude={"price_min", "price_max", "price_source"}))
+    save_uploads(uploads)
+    return next(p for p in get_catalogue().products if p.id == pid)
+
+
+@app.delete("/api/uploads/{product_id}")
+def delete_upload(product_id: str) -> dict:
+    """Old DELETE /api/models/:name: the GLB, its thumbnail and its catalogue entry go. Saved
+    designs that use it still load and report the item as missing; the id is never reused."""
+    uploads = load_uploads()
+    i = next((i for i, p in enumerate(uploads) if p["id"] == product_id and "deleted" not in p), None)
+    if i is None:
+        raise HTTPException(404, f"no uploaded model {product_id!r}")  # built-ins can't be deleted
+    for v in uploads[i]["variants"]:
+        for url in (v.get("glb"), v.get("thumbnail")):
+            if url:  # a plain file name inside UPLOADS, whatever the entry says
+                (UPLOADS / Path(url).name).unlink(missing_ok=True)
+    uploads[i] = {"id": product_id, "deleted": datetime.now(timezone.utc).isoformat()}
+    save_uploads(uploads)
+    return {"success": True, "message": f'Deleted "{product_id}"'}
+
+
+def r1(n: float) -> float:
+    """0.1 cm, as build-catalogue.js rounds the catalogue's dimensions."""
+    return round(n * 10) / 10
 
 
 # ── designs ──────────────────────────────────────────────────────────────────

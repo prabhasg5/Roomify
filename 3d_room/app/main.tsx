@@ -1,5 +1,5 @@
 // next.html: the stage-2 app shell. Pick, load or save a design; edit its plan in 2D, its items
-// and textures in 3D; add items from the catalogue.
+// and textures in 3D; add items from the catalogue, upload models to it; download the room as GLB.
 
 import { useProgress, useTexture } from "@react-three/drei";
 import { Canvas, events } from "@react-three/fiber";
@@ -11,10 +11,10 @@ import { settle } from "./core/placement";
 import { findRooms } from "./core/rooms";
 import type { FloorTexture, PlacedItem, Vec3, WallTexture } from "./core/types";
 import { buildEdges, wallSides } from "./core/walls";
-import { ArExport } from "./dialogs";
+import { ArExport, ModelUpload } from "./dialogs";
 import { Floorplanner } from "./plan2d";
-import { gizmoHot, Scene, surfaceUnder } from "./scene";
-import { indexCatalogue, resolveModel, useViewer, type CatalogueProduct, type CatalogueVariant, type GizmoMode } from "./store";
+import { exportGlb, gizmoHot, Scene, surfaceUnder } from "./scene";
+import { heavy, indexCatalogue, resolveModel, useViewer, type CatalogueProduct, type CatalogueVariant, type GizmoMode } from "./store";
 import "./app.css";
 
 const fixtures = import.meta.glob<LegacyDesign>("./fixtures/*.design.json", { import: "default" });
@@ -65,6 +65,24 @@ function loadText(source: string, text: string) {
   }
 }
 
+/** /api/catalogue adds prices and uploads; the static file is the fallback when FastAPI is down (as old example.js). */
+function loadCatalogue() {
+  const json = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${url}: HTTP ${r.status}`))));
+  return json("/api/catalogue")
+    .catch(() => json("catalogue.json"))
+    .then((cat) => useViewer.getState().setCatalogue(cat.products, indexCatalogue(cat)))
+    .catch((e) => useViewer.getState().addError(`catalogue: ${e.message}`));
+}
+
+/** A download of `blob` as `name`. */
+function download(blob: Blob, name: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 async function loadSource(name: string) {
   const { load, addError } = useViewer.getState();
   const src = sources[name] ?? sources[DEFAULT_SOURCE];
@@ -90,12 +108,7 @@ function App() {
   };
 
   useEffect(() => {
-    // /api/catalogue adds prices; the static file is the fallback when FastAPI is down (as old example.js).
-    const json = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${url}: HTTP ${r.status}`))));
-    json("/api/catalogue")
-      .catch(() => json("catalogue.json"))
-      .then((cat) => useViewer.getState().setCatalogue(cat.products, indexCatalogue(cat)))
-      .catch((e) => useViewer.getState().addError(`catalogue: ${e.message}`));
+    loadCatalogue();
     const fromHash = () => loadSource(decodeURIComponent(location.hash.slice(1)) || DEFAULT_SOURCE);
     fromHash();
     window.addEventListener("hashchange", fromHash);
@@ -240,12 +253,18 @@ function FileMenu() {
   };
   const saveFile = () => {
     const data = legacy();
-    if (!data) return;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([data], { type: "text" }));
-    a.download = "design.blueprint3d";
-    a.click();
-    URL.revokeObjectURL(a.href);
+    if (data) download(new Blob([data], { type: "text" }), "design.blueprint3d");
+  };
+  // Old "Download GLB" saved the design JSON; this is the room itself.
+  const downloadGlb = async () => {
+    setNotice("Exporting GLB…");
+    try {
+      const glb = await exportGlb();
+      download(new Blob([glb], { type: "model/gltf-binary" }), "room.glb");
+      setNotice(`Downloaded room.glb (${(glb.byteLength / 1024 / 1024).toFixed(1)} MB)`);
+    } catch (e) {
+      setNotice(`GLB export failed: ${(e as Error).message}`);
+    }
   };
   const saveBrowser = () => {
     const data = legacy();
@@ -287,6 +306,7 @@ function FileMenu() {
       </label>
       <button onClick={saveBrowser}>Save to browser</button>
       <button onClick={saveServer}>Save to server</button>
+      <button onClick={downloadGlb}>Download GLB</button>
       <ArExport />
       <button className="warning" onClick={clearAll}>Clear all placed items</button>
       {notice && <span className="muted" role="status">{notice}</span>}
@@ -296,7 +316,7 @@ function FileMenu() {
 
 const IN_RUPEES = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
-/** Old "Add Items" tab, now from the catalogue: one card per variant; a click places it and selects it. */
+/** Old "Add Items" tab, now from the catalogue (uploads included): one card per variant; a click places it and selects it. */
 function CataloguePanel({ onAdded }: { onAdded: () => void }) {
   const { products, sizes, addItem, design } = useViewer();
   const add = (p: CatalogueProduct, v: CatalogueVariant, name: string) => {
@@ -310,17 +330,33 @@ function CataloguePanel({ onAdded }: { onAdded: () => void }) {
     }, size);
     onAdded();
   };
+  // Old deleteUserModel(). Designs that use it still load; the item shows in the error bar.
+  const remove = async (p: CatalogueProduct) => {
+    if (!confirm(`Delete "${p.name}"? This cannot be undone. Saved designs that use it will show it as missing.`)) return;
+    const r = await fetch(`/api/uploads/${encodeURIComponent(p.id)}`, { method: "DELETE" }).catch(() => null);
+    if (!r?.ok) useViewer.getState().addError(`Failed to delete model "${p.name}": ${r ? `HTTP ${r.status}` : "server unreachable"}`);
+    loadCatalogue();
+  };
   return (
     <section className="catalogue" aria-label="Catalogue">
+      <ModelUpload onUploaded={loadCatalogue} />
       {products.flatMap((p) => p.variants.filter((v) => v.glb).map((v) => {
         const name = p.variants.length > 1 ? `${p.name} - ${v.label ?? v.id}` : p.name;
         const price = p.price != null ? p.price + (v.price_delta ?? 0) : null;
+        const warn = heavy(v.stats);
         return (
-          <button key={`${p.id}/${v.id}`} className="card" onClick={() => add(p, v, name)} disabled={!design}>
-            {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" />}
-            <span>{name}</span>
-            {price != null && <span className="price">{IN_RUPEES.format(price)}</span>}
-          </button>
+          <div key={`${p.id}/${v.id}`} className="card-wrap">
+            <button className="card" onClick={() => add(p, v, name)} disabled={!design}>
+              {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" />}
+              <span>{name}</span>
+              {price != null && <span className="price">{IN_RUPEES.format(price)}</span>}
+              {warn.length > 0 && <span className="heavy" title={warn.join("\n")}>⚠ heavy model: {warn.join(", ")}</span>}
+            </button>
+            {/* Only what POST /api/uploads stored can be deleted (couch and sofa-2 are catalogue builds). */}
+            {v.glb?.startsWith("models/uploads/") && (
+              <button className="remove" title="Delete" aria-label={`Delete ${p.name}`} onClick={() => remove(p)}>&times;</button>
+            )}
+          </div>
         );
       }))}
     </section>

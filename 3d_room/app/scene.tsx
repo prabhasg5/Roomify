@@ -6,6 +6,7 @@ import { OrbitControls, TransformControls, useGLTF, useTexture } from "@react-th
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cutsWall, findOpenings, holeRect } from "./core/openings";
 import { fitsInRoom, hitWall, isFloorItem, isWallItem, placeOnWall, rotateToward, settle, surfaceAt } from "./core/placement";
@@ -34,6 +35,38 @@ export const gizmoHot = () => gizmo?.axis != null;
 let picker: ((e: MouseEvent) => Surface | null) | null = null;
 export const surfaceUnder = (e: MouseEvent) => picker?.(e) ?? null;
 
+// The scene, for exportGlb (set by Scene). Its children tagged EXPORT are the room.
+let stage: THREE.Scene | null = null;
+const EXPORT = { export: true };
+
+/** The room as binary glTF: floors, walls (cut-away sides included) and furniture, in metres. */
+export async function exportGlb(): Promise<ArrayBuffer> {
+  if (!stage) throw new Error("the 3D scene isn't ready");
+  const root = new THREE.Group();
+  root.name = "room";
+  root.scale.setScalar(0.01); // the scene is in cm, glTF in metres
+  for (const o of stage.children) if (o.userData.export) root.add(o.clone()); // shares geometry, textures
+  root.traverse((o) => {
+    delete o.userData.export;
+    if (o instanceof THREE.Mesh) o.material = Array.isArray(o.material) ? o.material.map(forExport) : forExport(o.material);
+  });
+  return (await new GLTFExporter().parseAsync(root, { binary: true, onlyVisible: false })) as ArrayBuffer;
+}
+
+function forExport(m: THREE.Material): THREE.Material {
+  // glTF has no Phong (the exporter would guess metalness 0.5): the floor exports matte.
+  if (m instanceof THREE.MeshPhongMaterial) {
+    return new THREE.MeshStandardMaterial({ name: m.name, map: m.map, color: m.color, side: m.side, metalness: 0, roughness: 1 });
+  }
+  // The hover/selection glow is the editor's, not the model's (paint() keeps it 0 otherwise).
+  if (m instanceof THREE.MeshStandardMaterial && m.emissive.getHex() !== 0) {
+    const c = m.clone();
+    c.emissive.setHex(0);
+    return c;
+  }
+  return m;
+}
+
 const DEFAULT_FLOOR = { url: "rooms/textures/hardwood.png", scale: 400 };
 const fillerMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, side: THREE.DoubleSide });
 const sideMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide });
@@ -61,6 +94,11 @@ export function Scene() {
   // Per-frame wall visibility (old Edge.updateVisibility), shared with in-wall items.
   const wallVisible = useRef<boolean[]>([]);
   const live = useRef<Live>(null);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    stage = scene;
+    return () => { stage = null; };
+  }, [scene]);
 
   return (
     <>
@@ -88,7 +126,7 @@ export function Scene() {
                 {urls[i] ? (
                   <Suspense fallback={null}>
                     <Item
-                      index={i} item={item} url={urls[i]} design={design} plan={plan}
+                      index={i} item={item} url={urls[i]} unit={models.units.get(urls[i]) ?? 1} design={design} plan={plan}
                       selected={selected === i} mode={mode} wall={opening?.wall} visible={wallVisible} live={live}
                     />
                   </Suspense>
@@ -153,7 +191,7 @@ function Floor({ room, texture }: { room: HalfEdge[]; texture: { url: string; sc
     map.colorSpace = THREE.SRGBColorSpace;
   }, [map]);
   return (
-    <mesh geometry={geometry} rotation={[Math.PI / 2, 0, 0]} scale={texture.scale}>
+    <mesh geometry={geometry} rotation={[Math.PI / 2, 0, 0]} scale={texture.scale} name="floor" userData={EXPORT}>
       <meshPhongMaterial map={map} color={0xcccccc} specular={0x0a0a0a} side={THREE.DoubleSide} />
     </mesh>
   );
@@ -290,7 +328,7 @@ function Edge({ edge: e, wall, interiorHoles, exteriorHoles, groupRef, meshRef }
 
   return (
     <>
-      <group ref={groupRef}>
+      <group ref={groupRef} name="wall" userData={EXPORT}>
         <mesh ref={interior} geometry={g.interior}>
           <meshBasicMaterial map={map} />
         </mesh>
@@ -300,7 +338,7 @@ function Edge({ edge: e, wall, interiorHoles, exteriorHoles, groupRef, meshRef }
         <mesh geometry={g.end} material={sideMat} />
       </group>
       {/* The base is always drawn. */}
-      <mesh geometry={g.cap} material={baseMat} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh geometry={g.cap} material={baseMat} rotation={[Math.PI / 2, 0, 0]} name="wall base" userData={EXPORT} />
     </>
   );
 }
@@ -344,6 +382,8 @@ interface ItemProps {
   index: number;
   item: PlacedItem;
   url: string;
+  /** cm per GLB unit (uploads are stored as uploaded, often in metres). */
+  unit: number;
   design: Design;
   plan: Plan;
   selected: boolean;
@@ -364,13 +404,14 @@ const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
  * arrow rotates floor items; the gizmo moves/rotates/scales. The three.js object moves during a
  * drag; the store gets one updateItem on release.
  */
-function Item({ index, item, url, design, plan, selected, mode, wall, visible, live }: ItemProps) {
+function Item({ index, item, url, unit, design, plan, selected, mode, wall, visible, live }: ItemProps) {
   const gltf = useGLTF(url);
   const { setSize, select, updateItem } = useViewer.getState();
   const get = useThree((s) => s.get);
   const ref = useRef<THREE.Group>(null!);
   const { object, size, materials } = useMemo(() => {
     const object = gltf.scene.clone(true);
+    object.scale.multiplyScalar(unit);
     // Own materials, so highlighting one item doesn't light up every copy of the model.
     const materials: THREE.MeshStandardMaterial[] = [];
     object.traverse((o) => {
@@ -383,7 +424,7 @@ function Item({ index, item, url, design, plan, selected, mode, wall, visible, l
     object.position.sub(box.getCenter(new THREE.Vector3()));
     const s = box.getSize(new THREE.Vector3());
     return { object, size: { x: s.x, y: s.y, z: s.z }, materials };
-  }, [gltf.scene]);
+  }, [gltf.scene, unit]);
   useEffect(() => setSize(url, size), [url, size, setSize]);
   useEffect(() => () => materials.forEach((m) => m.dispose()), [materials]);
 
@@ -520,7 +561,7 @@ function Item({ index, item, url, design, plan, selected, mode, wall, visible, l
   return (
     <>
       <group
-        ref={ref} position={[p.x, p.y, p.z]} rotation={[r.x, r.y, r.z]} scale={[s.x, s.y, s.z]}
+        ref={ref} name={item.name} userData={EXPORT} position={[p.x, p.y, p.z]} rotation={[r.x, r.y, r.z]} scale={[s.x, s.y, s.z]}
         onPointerDown={onDown}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -627,14 +668,14 @@ void main() {
   );
 }
 
-/** Puts a failed load in the UI's error list instead of hanging or blanking the canvas. */
-class Report extends Component<{ what: string; children: ReactNode }, { failed: boolean }> {
+/** Puts a failed load in the UI's error list (or onError) instead of hanging or blanking the canvas. */
+export class Report extends Component<{ what: string; children: ReactNode; onError?: (message: string) => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   componentDidCatch(error: Error) {
-    useViewer.getState().addError(`${this.props.what}: ${error.message}`);
+    (this.props.onError ?? useViewer.getState().addError)(`${this.props.what}: ${error.message}`);
   }
   render() {
     return this.state.failed ? null : this.props.children;
