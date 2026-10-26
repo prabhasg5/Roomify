@@ -1,4 +1,4 @@
-// ESM copy of example/js/dwg-importer.js (the old app keeps its own until step 9). Changes: this
+// ESM copy of the old app's example/js/dwg-importer.js (deleted in stage 2 step 9). Changes: this
 // header, `export`, and the library loading: the npm package's ESM build is imported on first use
 // (code-split, ~9 MB with its wasm inlined) instead of the vendored UMD global + wasm folder.
 

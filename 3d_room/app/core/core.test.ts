@@ -2,6 +2,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { NodeIO } from "@gltf-transform/core";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import { getBounds } from "@gltf-transform/functions";
 import { describe, expect, test } from "vitest";
 import { fromDesign, toDesign, type LegacyDesign } from "./design";
 import { cutsWall, findOpenings, holeRect } from "./openings";
@@ -16,18 +19,20 @@ const names = fs.readdirSync(FIXTURES).filter((f) => f.endsWith(".design.json"))
 const read = (f: string) => JSON.parse(fs.readFileSync(path.join(FIXTURES, f), "utf8"));
 
 // The golden's hole sizes came from the r69 model's bounding box (the catalogue's dimensions are
-// rounded to 0.1 cm, too coarse for TOL), so read the same box from the model file.
-function modelSize(item: PlacedItem): Vec3 {
-  const json = JSON.parse(fs.readFileSync(path.join(ROOT, "example", item.modelUrl!), "utf8"));
-  const s = json.scale ? 1 / json.scale : 1; // as r69 JSONLoader
-  const v: number[] = json.vertices;
-  const span = (k: number) => {
-    let lo = Infinity, hi = -Infinity;
-    for (let i = k; i < v.length; i += 3) { lo = Math.min(lo, v[i]); hi = Math.max(hi, v[i]); }
-    return (hi - lo) * s;
-  };
-  return { x: span(0), y: span(1), z: span(2) };
+// rounded to 0.1 cm, too coarse for TOL). The catalogue GLBs were written from those same vertices
+// (step 3, float32 ≈ 1e-5 cm), so read the box from the item's GLB, as the renderer does.
+const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+const catalogue: { products: { id: string; variants: { id: string; glb: string }[] }[] } =
+  JSON.parse(fs.readFileSync(path.join(ROOT, "example/catalogue.json"), "utf8"));
+const glbOf = new Map(catalogue.products.flatMap((p) => p.variants.map((v) => [`${p.id}/${v.id}`, v.glb])));
+const boxes = new Map<string, Vec3>();
+for (const it of names.flatMap((n) => fromDesign(read(`${n}.design.json`)).items).filter(cutsWall)) {
+  const key = `${it.productId}/${it.variantId}`;
+  if (boxes.has(key)) continue;
+  const { min, max } = getBounds((await io.read(path.join(ROOT, "example", glbOf.get(key)!))).getRoot().listScenes()[0]);
+  boxes.set(key, { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] });
 }
+const modelSize = (item: PlacedItem): Vec3 => boxes.get(`${item.productId}/${item.variantId}`)!;
 
 /** The kernel's output in the golden file's shape. */
 function dump(legacy: LegacyDesign) {

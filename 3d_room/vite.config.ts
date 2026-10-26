@@ -3,67 +3,47 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
-// The furniture models in example/models/js are Three.js JSON (format 3.1) but
-// carry a .js extension, so Vite's dev server treats each one as a JS module and
-// appends an inline sourcemap comment. THREE.JSONLoader does JSON.parse() on the
-// response, that trailing comment makes it throw, the load callback never fires,
-// and the app's "Loading..." modal never closes. Serve these paths byte-for-byte
-// instead. (Express on :9000 never had the problem — it serves them statically.)
-function rawJsonModels(): Plugin {
-  const PREFIX = "/models/js/";
+// `vite build` bundles the page and the app only. What the app fetches at run time
+// (catalogue.json, models/ incl. FastAPI's uploads, rooms/) stays in example/ and is served
+// live from there, as the dev server does; uploads arrive after the build, so copying them
+// into dist/ would go stale. Whatever serves dist/ in production must serve example/ the same way.
+function exampleAssets(): Plugin {
+  const types: Record<string, string> = {
+    ".glb": "model/gltf-binary", ".json": "application/json", ".png": "image/png",
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
+  };
   return {
-    name: "raw-json-models",
-    configureServer(server) {
-      // Registered in the hook body, so it runs before Vite's transform middleware.
-      const modelsDir = path.join(server.config.root, "models", "js");
+    name: "example-assets",
+    configurePreviewServer(server) {
+      // Registered in the hook body, so it runs before preview's own dist/ middleware.
+      const root = path.resolve(server.config.root);
       server.middlewares.use(async (req, res, next) => {
-        const url = (req.url || "").split("?")[0];
-        if (!url.startsWith(PREFIX) || !url.endsWith(".js")) return next();
-        const file = path.join(server.config.root, decodeURIComponent(url));
-        // Keep traversal (../) inside the models directory.
-        if (path.dirname(file) !== modelsDir) return next();
+        const file = path.join(root, decodeURIComponent((req.url || "").split("?")[0]));
+        // Keep traversal (../) inside example/; the built index.html comes from dist/.
+        if (!file.startsWith(root + path.sep) || file.endsWith(".html")) return next();
         try {
-          await stat(file);
+          if (!(await stat(file)).isFile()) return next();
         } catch {
           return next();
         }
-        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Content-Type", types[path.extname(file).toLowerCase()] ?? "application/octet-stream");
         createReadStream(file).pipe(res);
       });
     },
   };
 }
 
-// Stage 1 (toolchain) Vite config.
-// The frontend is still a classic global-<script> app (jQuery, Bootstrap,
-// three r69, and the compiled BP3D namespace bundle). Vite is used here purely
-// as a fast dev server with live-reload + an /api proxy to the existing Express
-// backend (model-server.js on :9000). The TypeScript in src/ is still compiled
-// by `tsc` (namespace/outFile mode) into example/js/blueprint3d.js — Vite does
-// not bundle it. ES-module migration + a Vite production build come in stage 2.
 export default defineConfig({
-  // Serve the existing example/ app as the web root.
+  // example/ holds the page (index.html) and the assets the app fetches at run time.
   root: "example",
-  plugins: [rawJsonModels()],
-  // The stage-2 app (next.html) lives outside the root, in 3d_room/app/: serve it at /app/.
+  plugins: [exampleAssets()],
+  // The app lives outside the root, in 3d_room/app/: serve it at /app/.
   resolve: { alias: [{ find: /^\/app\//, replacement: path.resolve(import.meta.dirname, "app") + "/" }] },
+  build: { outDir: path.resolve(import.meta.dirname, "dist"), emptyOutDir: true },
   server: {
     port: 5173,
     open: true,
-    proxy: {
-      // Matched in key order, so the more specific rule must come first.
-      // Cutover to the Python backend happens one path at a time (see
-      // BACKEND_REWRITE_CONTEXT.md); this is the first one.
-      // A key starting with ^ is matched as a RegExp.
-      "^/api/(catalogue|designs|network-info|uploads)": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-      // Forward backend API calls to the Express server (model upload, models).
-      "/api": {
-        target: "http://localhost:9000",
-        changeOrigin: true,
-      },
-    },
+    // Every server job is FastAPI's (backend/main.py). preview.proxy defaults to this.
+    proxy: { "/api": { target: "http://localhost:8080", changeOrigin: true } },
   },
 });

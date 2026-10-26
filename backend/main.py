@@ -42,6 +42,8 @@ import glb
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "3d_room" / "example"
 AR_VIEW = ROOT / "3d_room" / "ar_view"
+# The r69 script + Three.js JSON meshes ar-dynamic.html loads; AR-only, they go when AR is redone.
+AR_LEGACY = ROOT / "3d_room" / "ar_legacy"
 CATALOGUE = EXAMPLE / "catalogue.json"
 PRICE_DB = Path(__file__).resolve().parent / "data" / "prices.db"
 DESIGNS = AR_VIEW / "models"
@@ -508,11 +510,11 @@ def no_keys() -> None:
 
 # Static, last: a mount matches everything under its prefix, so every route above
 # must already be registered. These four paths are what ar-mobile.html resolves
-# model urls against — /glb and /js-models are the workspace's own asset folders,
-# so both views read the same files.
+# model urls against — /glb is the workspace's own catalogue folder, so both views
+# read the same files; /js-models and /three are ar_legacy/ (ar-dynamic.html only).
 DESIGNS.mkdir(parents=True, exist_ok=True)
 app.mount("/models", StaticFiles(directory=DESIGNS))
 app.mount("/glb", StaticFiles(directory=EXAMPLE / "models" / "glb"))
-app.mount("/js-models", StaticFiles(directory=EXAMPLE / "models" / "js"))
-app.mount("/three", StaticFiles(directory=EXAMPLE / "js"))
+app.mount("/js-models", StaticFiles(directory=AR_LEGACY / "js-models"))
+app.mount("/three", StaticFiles(directory=AR_LEGACY / "three"))
 app.mount("/", StaticFiles(directory=AR_VIEW, html=True))

@@ -53,9 +53,8 @@ desktop.ini
 # 281k-face problem upload stays local (stage-2 test asset).
 !3d_room/example/models/glb/*.glb
 3d_room/example/models/glb/white-sofa-1790761067934.glb
-3d_room/example/js/blueprint3d.js
-3d_room/example/js/blueprint3d.js.map
-3d_room/example/js/three.min.js
+# r69, AR only (ar-dynamic.html via /three); written by `npm run copy:three`
+3d_room/ar_legacy/three/three.min.js
 
 # TLS keypair for the AR server (generate locally, never commit)
 3d_room/ar_view/*.pem

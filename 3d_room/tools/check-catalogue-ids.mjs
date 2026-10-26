@@ -30,7 +30,7 @@ const example = path.join(root, "example");
 const catalogue = JSON.parse(
   await readFile(process.argv[2] || path.join(example, "catalogue.json"), "utf8")
 );
-const itemsJs = await readFile(path.join(root, "example", "js", "items.js"), "utf8");
+const itemsJs = await readFile(path.join(root, "tools", "items.js"), "utf8");
 
 const byModel = new Map();
 for (const product of catalogue.products) {

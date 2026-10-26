@@ -1,4 +1,4 @@
-// next.html: the stage-2 app shell. Pick, load or save a design; edit its plan in 2D, its items
+// index.html: the app shell. Pick, load or save a design; edit its plan in 2D, its items
 // and textures in 3D; add items from the catalogue, upload models to it; download the room as GLB.
 
 import { useProgress, useTexture } from "@react-three/drei";
@@ -128,7 +128,7 @@ function App() {
   return (
     <div className="app">
       <header>
-        <strong>Roomify</strong> <span className="muted">next</span>
+        <strong>Roomify</strong>
         <div className="tabs" role="tablist">
           <button role="tab" aria-selected={tab === "3d"} onClick={() => show("3d")}>3D view</button>
           <button role="tab" aria-selected={tab === "2d"} onClick={() => show("2d")}>2D floorplan</button>

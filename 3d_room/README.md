@@ -1,40 +1,29 @@
 # 3d_room — Roomify 3D designer
 
-Blueprint3D fork: 2D floorplanner + Three.js 3D sharing one model, plus CAD import and AR export.
+2D floorplanner (SVG) + 3D workspace (React + react-three-fiber) over one design, plus CAD
+import, model upload, GLB export and AR handoff.
 
 ```bash
 npm install
 cd ../backend && python3 -m venv venv && venv/bin/pip install -r requirements.txt && cd -
-npm run dev      # tsc --watch + API (:9000) + FastAPI (:8080 + AR on https :8002) + Vite (:5173)
+npm run dev      # Vite (:5173) + FastAPI (:8080, and AR on https :8002)
 ```
-
-Serve over HTTP, not `file://` — the DWG WASM loader needs it.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | The one you want. All five processes wired together. |
-| `npm run build` | One-shot build → `example/js/blueprint3d.js` (gitignored). |
-| `npm run backend` | FastAPI alone on :8080 — catalogue, designs, and the AR pages over plain HTTP. |
+| `npm run dev` | The one you want: Vite + both FastAPI processes, all of `/api` proxied to :8080. |
+| `npm run build` | Production build → `dist/` (the page + the bundle). |
+| `npm run preview` | Serves `dist/` on :4173, with the run-time assets from `example/`; needs FastAPI running. |
+| `npm run backend` | FastAPI alone on :8080: catalogue, designs, uploads, and the AR pages over plain HTTP. |
 | `npm run ar` | The same app over HTTPS on :8002 with `ar_view/`'s cert. This is the one the phone talks to; WebXR needs TLS, and uvicorn does one protocol per process. |
-| `npm start` | Express alone on :9000. No live reload, **and no proxy to :8080**, so the catalogue falls back to the static file and both AR design saving and the QR code's network lookup no-op. Use `npm run dev`. |
-| `npm run check:models` · `check:catalogue` | Regression guards — see the docs below. |
+| `npm test` · `typecheck` · `check:catalogue` | Vitest (kernel goldens, CAD import, store), `tsc` on `app/`, catalogue ids + GLBs. |
 
-`example/js/*.js` (cad-importer, dwg-importer, example, items…) is plain JS served as-is —
-no build step. Only `src/*.ts` changes need one.
+`ar_legacy/` is AR-only (parked): the r69 `three.min.js` (`npm run copy:three`, run by `dev` and
+`build`) and the Three.js JSON meshes `ar-dynamic.html` loads. It goes when AR is redone.
 
-Python checks live in `backend/`: `venv/bin/python test_catalogue.py`, `test_designs.py`.
+Python checks live in `backend/`: `venv/bin/python test_catalogue.py`, `test_designs.py`,
+`test_uploads.py`.
 
 ## Docs
 
 Start at [PROJECT_OVERVIEW](../PROJECT_OVERVIEW.md) — it has the map and the current status.
-
-## Style, for `src/*.ts`
-
-Google JavaScript style. The parts that actually come up:
-
-- two spaces, not tabs
-- lowercase filenames, camelcase types, underscores where the type name has capitals:
-  `HalfEdge` → `half_edge.ts`
-- `/// <reference>` order: external, then other directories alphabetically, then the current
-  directory alphabetically — sometimes bent to avoid bootstrap issues. Blank line after them.
-- paths in references are **case-sensitive** on Linux/CI even though macOS forgives them

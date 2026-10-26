@@ -39,7 +39,7 @@ This is the gap **Roomify** addresses.
 | Category | Technologies |
 |----------|-------------|
 | **Frontend** | React, Three.js |
-| **Backend** | Node.js, Python, Express.js, REST APIs |
+| **Backend** | Python (FastAPI), REST APIs |
 | **AI & ML** | Planned: an AI design agent (the earlier 2D image-generation demo is parked) |
 | **3D & AR** | WebXR, Three.js, Blender |
 
@@ -89,16 +89,12 @@ cd 3d_room
 # Install dependencies
 npm install
 
-# Build the TypeScript bundle (example/js/blueprint3d.js)
-npm run build
-
-# Start dev: tsc --watch + API (:9000) + FastAPI (:8080, and AR over https :8002) + Vite (:5173)
+# Start dev: Vite (:5173) + FastAPI (:8080, and AR over https :8002)
 npm run dev
 ```
 
-Open http://localhost:5173. The app must be served over HTTP — `file://` blocks the
-DWG WASM loader. `npm start` alone serves the same app from Express on
-http://localhost:9000 without live reload.
+Open http://localhost:5173. `npm run build` makes a production build in `3d_room/dist/`
+(`npm run preview` serves it on :4173, with FastAPI running).
 
 ### 3. The AR view
 

@@ -1,4 +1,4 @@
-// ESM copy of example/js/cad-importer.js (the old app keeps its own until step 9). Changes: this
+// ESM copy of the old app's example/js/cad-importer.js (deleted in stage 2 step 9). Changes: this
 // header, the dxf-parser import, and `export` on the module object; the logic is untouched.
 
 import DxfParser from "dxf-parser";

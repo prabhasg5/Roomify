@@ -1,5 +1,5 @@
 // Types for cad-importer.js (an ESM copy of the old importer, kept as JS so it stays diffable
-// against example/js/cad-importer.js until step 9).
+// against the old example/js/cad-importer.js in git history).
 
 import type { LegacyDesign } from "./design";
 

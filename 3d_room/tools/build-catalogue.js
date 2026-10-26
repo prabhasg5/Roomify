@@ -4,18 +4,13 @@
  * furnishing agent selects from.
  *
  * Sources (all existing, nothing new authored by hand):
- *   example/js/items.js            → the 25 built-in entries
+ *   tools/items.js                 → the 25 built-in entries (the old app's panel list)
  *   example/models/user-models.json → user-uploaded models
  *   example/models/glb/*.glb        → the meshes the renderer loads, for REAL dimensions
- *                                     (written by tools/legacy-json-to-glb.mjs)
- *   example/models/js/*.js          → fallback when a variant has no GLB yet
+ *                                     (written in stage 2 step 3, now frozen)
  *
  * A variant's `glb` is the source's own `glb`, else models/glb/<same name as the .js>.glb.
  * Dimensions are the GLB's world-space bounding box (node transforms applied).
- *
- * Dimensions are measured, not guessed: Three.js JSON v3.1 stores raw vertices
- * plus a `scale` divisor, so actual_cm = vertex_range / scale. Verified against
- * cb-blue-block-60x96.js → 152.4 × 243.8 cm = exactly 60" × 96".
  *
  * price and style are seeded null — they are a human/product decision, not
  * something derivable from a mesh. Fill them in catalogue.json directly.
@@ -31,7 +26,6 @@ const { getBounds } = require('@gltf-transform/functions');
 
 const ROOT = path.join(__dirname, '..');
 const EXAMPLE = path.join(ROOT, 'example');
-const MODELS_JS = path.join(EXAMPLE, 'models', 'js');
 const OUT = path.join(EXAMPLE, 'catalogue.json');
 
 // ── placement types, straight from src/items/factory.ts ──────────────────────
@@ -92,37 +86,6 @@ function splitVariant(name) {
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 // ── measure a mesh ───────────────────────────────────────────────────────────
-// Three.js JSONLoader divides vertices by `scale`, so that is the cm conversion.
-function measure(modelRelPath) {
-  const file = path.join(EXAMPLE, modelRelPath);
-  if (!fs.existsSync(file)) return { dimensions: null, note: 'model file missing' };
-  let json;
-  try {
-    json = JSON.parse(fs.readFileSync(file, 'utf-8'));
-  } catch (e) {
-    return { dimensions: null, note: 'unparseable model file' };
-  }
-  const v = json.vertices;
-  if (!Array.isArray(v) || v.length < 3) return { dimensions: null, note: 'no vertex data' };
-
-  const s = json.scale || 1.0;
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-  for (let i = 0; i + 2 < v.length; i += 3) {
-    if (v[i]   < minX) minX = v[i];   if (v[i]   > maxX) maxX = v[i];
-    if (v[i+1] < minY) minY = v[i+1]; if (v[i+1] > maxY) maxY = v[i+1];
-    if (v[i+2] < minZ) minZ = v[i+2]; if (v[i+2] > maxZ) maxZ = v[i+2];
-  }
-  return {
-    dimensions: {                    // centimetres, matching the engine's unit
-      width:  r1((maxX - minX) / s), // x — same axis as Item.getWidth()
-      height: r1((maxY - minY) / s), // y — Item.getHeight()
-      depth:  r1((maxZ - minZ) / s)  // z — Item.getDepth()
-    },
-    note: null
-  };
-}
-
 const r1 = n => Math.round(n * 10) / 10;
 
 async function measureGlb(glbRelPath) {
@@ -137,7 +100,7 @@ const conventionalGlb = model => {
 
 // ── read the two existing sources ────────────────────────────────────────────
 function readBuiltIns() {
-  const src = fs.readFileSync(path.join(EXAMPLE, 'js', 'items.js'), 'utf-8');
+  const src = fs.readFileSync(path.join(ROOT, 'tools', 'items.js'), 'utf-8');
   const live = src.replace(/\/\*[\s\S]*?\*\//g, '');   // drop commented-out entries
   const decl = live.search(/var\s+items\s*=\s*\[/);
   if (decl === -1) throw new Error('could not locate `var items = [` in items.js');
@@ -202,8 +165,7 @@ async function build() {
     }
     const p = products.get(id);
     const glb = r.glb || conventionalGlb(r.model);
-    const { dimensions, note } = glb ? { dimensions: await measureGlb(glb), note: null } : measure(r.model);
-    if (note) warn(`${r.name}: ${note}`);
+    const dimensions = glb ? await measureGlb(glb) : null;
     if (!glb) warn(`${r.name}: no GLB — run tools/legacy-json-to-glb.mjs`);
 
     // Disambiguate colliding variant labels (the case-duplicate pair).
@@ -265,4 +227,4 @@ async function main() {
 }
 
 if (require.main === module) main();
-module.exports = { build, measure, splitVariant, categoryOf };
+module.exports = { build, splitVariant, categoryOf };
