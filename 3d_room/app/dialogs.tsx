@@ -14,8 +14,10 @@ import { heavy, useViewer, type CatalogueProduct } from "./store";
 
 const STORAGE_KEY = "ar_room_design";
 
-function Modal({ dialog, title, onClose, children, footer }: {
+function Modal({ dialog, title, onClose, children, footer, tone = "" }: {
   dialog: React.RefObject<HTMLDialogElement | null>;
+  /** Old header look: "" (plain Bootstrap modal), "cad" (cyan gradient), "ar" (purple gradient). */
+  tone?: string;
   title: ReactNode;
   onClose: () => void;
   children: ReactNode;
@@ -23,7 +25,7 @@ function Modal({ dialog, title, onClose, children, footer }: {
 }) {
   return (
     // A click on the dialog element itself is a click on its backdrop (old .cad-modal-backdrop).
-    <dialog ref={dialog} className="modal" onClose={onClose} onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}>
+    <dialog ref={dialog} className={`modal ${tone}`} onClose={onClose} onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}>
       <header>
         <h4>{title}</h4>
         <button className="close" aria-label="Close" onClick={() => dialog.current?.close()}>&times;</button>
@@ -119,50 +121,57 @@ export function CadImport() {
   return (
     <>
       <input ref={input} type="file" accept=".dxf,.dwg" hidden onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])} />
-      <button className="info" onClick={() => input.current?.click()} title="Import a DXF or DWG CAD file as floorplan">Import CAD</button>
+      <button className="info sm import-cad" data-icon="⇪" onClick={() => input.current?.click()} title="Import a DXF or DWG CAD file as floorplan">Import CAD</button>
       {notice && <span className="notice" role="status">{notice}</span>}
       <Modal
-        dialog={dialog} title="Import CAD File" onClose={reset}
+        dialog={dialog} title={<span data-icon="⇪">Import CAD File</span>} onClose={reset} tone="cad"
         footer={<>
           <button onClick={() => dialog.current?.close()}>Cancel</button>
-          <button className="success" disabled={!parsed} onClick={importPlan}>Import Floorplan</button>
+          <button className="success" data-icon="⤓" disabled={!parsed} onClick={importPlan}>Import Floorplan</button>
         </>}
       >
         {fileName && <p className="alert info"><strong>File:</strong> {fileName}</p>}
         {summary && (
           <>
-            <fieldset>
-              <legend>{fileName.toLowerCase().endsWith(".dwg") ? "DWG" : "DXF"} File Summary</legend>
-              <p><strong>Total entities:</strong> {summary.totalEntities}</p>
-              <p><strong>Entity types:</strong> {Object.entries(summary.entityTypes).map(([t, n]) => `${t} (${n})`).join(", ")}</p>
-            </fieldset>
+            <section className="box">
+              <div className="box-head">{fileName.toLowerCase().endsWith(".dwg") ? "DWG" : "DXF"} File Summary</div>
+              <div className="box-body">
+                <p><strong>Total entities:</strong> {summary.totalEntities}</p>
+                <p><strong>Entity types:</strong> {Object.entries(summary.entityTypes).map(([t, n]) => `${t} (${n})`).join(", ")}</p>
+              </div>
+            </section>
             {summary.layers.length > 0 && (
-              <fieldset className="layers">
-                <legend>Layers Found</legend>
-                {summary.layers.map((l) => (
-                  <div key={l.name}>
-                    <strong>{l.name}</strong> <span className="badge">{l.entityCount} entities</span><br />
-                    <small className="muted">{l.entityTypes}</small>
-                  </div>
-                ))}
-              </fieldset>
+              <section className="box">
+                <div className="box-head">Layers Found</div>
+                <div className="box-body layers">
+                  {summary.layers.map((l) => (
+                    <div key={l.name} className="layer">
+                      <strong>{l.name}</strong> <span className="badge">{l.entityCount} entities</span><br />
+                      <small className="muted">{l.entityTypes}</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
             )}
           </>
         )}
-        <fieldset>
-          <legend>Import Settings</legend>
-          <label>Source units in CAD file:{" "}
-            <select value={unit} onChange={(e) => setUnit(e.target.value as CadUnit)}>
-              {UNITS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-            </select>
-          </label>
-          <label>Layer filter (leave empty for all layers):{" "}
-            <input value={layers} onChange={(e) => setLayers(e.target.value)} placeholder="e.g. A-WALL, WALL" />
-          </label>
-          <small className="muted">Comma-separated layer names. Only entities on these layers will be imported. Wall layers are auto-filled when detected.</small>
-          <label><input type="checkbox" checked={collapse} onChange={(e) => setCollapse(e.target.checked)} /> <strong>Collapse double-line walls</strong> (recommended for architectural plans)</label>
-          <small className="muted">Merges the two parallel lines of each wall into a single centerline. Turn off for plans drawn with single-line walls.</small>
-        </fieldset>
+        <section className="box">
+          <div className="box-head">Import Settings</div>
+          <div className="box-body">
+            <label className="field">Source units in CAD file:
+              <select className="control" value={unit} onChange={(e) => setUnit(e.target.value as CadUnit)}>
+                {UNITS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+              </select>
+            </label>
+            <label className="field">Layer filter (leave empty for all layers):
+              <input className="control" value={layers} onChange={(e) => setLayers(e.target.value)} placeholder="e.g. A-WALL, WALL" />
+              <small className="muted">Comma-separated layer names. Only entities on these layers will be imported. Wall layers are auto-filled when detected.</small>
+            </label>
+            <label className="check"><input type="checkbox" checked={collapse} onChange={(e) => setCollapse(e.target.checked)} /> <strong>Collapse double-line walls</strong> (recommended for architectural plans)
+              <br /><small className="muted">Merges the two parallel lines of each wall into a single centerline. Turn off for plans drawn with single-line walls.</small>
+            </label>
+          </div>
+        </section>
         {error && <p className="alert danger" role="alert">{error}</p>}
       </Modal>
     </>
@@ -188,7 +197,7 @@ const loadQr = () =>
 interface NetworkInfo { ip?: string; arUrl?: string; localUrl?: string }
 
 /** Old "Export to AR": save for the AR page, show the phone URL as a QR code, post to the server. */
-export function ArExport() {
+export function ArExport({ className = "" }: { className?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, setState] = useState<{ items: number; mobileUrl: string; localUrl: string; server: string; qr: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -234,8 +243,11 @@ export function ArExport() {
 
   return (
     <>
-      <button className="success" onClick={exportToAR}>Export to AR</button>
-      <Modal dialog={dialog} title="View in AR" onClose={() => setState(null)}>
+      <button className={className} data-icon="phone" onClick={exportToAR}>Export to AR</button>
+      <Modal
+        dialog={dialog} title={<span data-icon="phone">View in AR</span>} onClose={() => setState(null)} tone="ar"
+        footer={<button onClick={() => dialog.current?.close()}>Close</button>}
+      >
         {!state ? (
           <p className="loading">Exporting your room design...</p>
         ) : (
@@ -246,7 +258,7 @@ export function ArExport() {
             </div>
             <p className="muted center">Scan this QR code with your mobile device, or visit:</p>
             <div className="url">
-              <input readOnly value={state.mobileUrl} onFocus={(e) => e.target.select()} aria-label="AR URL" />
+              <input className="control" readOnly value={state.mobileUrl} onFocus={(e) => e.target.select()} aria-label="AR URL" />
               <button onClick={copy}>{copied ? "Copied!" : "Copy"}</button>
             </div>
             <p className="muted">On this computer: <a href={state.localUrl} target="_blank" rel="noreferrer">{state.localUrl}</a></p>
@@ -350,17 +362,17 @@ export function ModelUpload({ onUploaded }: { onUploaded: (product: CataloguePro
 
   return (
     <>
-      <button className="info upload" onClick={open}>Upload 3D model (.glb)</button>
+      <button className="primary block" data-icon="⇪" onClick={open}>Upload 3D Model (.glb)</button>
       <Modal
-        dialog={dialog} title="Upload 3D Model" onClose={() => pickModel(undefined)}
+        dialog={dialog} title={<span data-icon="⇪">Upload 3D Model</span>} onClose={() => pickModel(undefined)}
         footer={<>
           <button onClick={() => dialog.current?.close()}>Close</button>
-          <button className="success" onClick={submit} disabled={progress !== null || (!!model && preview !== "ready")}>Upload &amp; add</button>
+          <button className="primary" data-icon="⇪" onClick={submit} disabled={progress !== null || (!!model && preview !== "ready")}>Upload &amp; Add</button>
         </>}
       >
         <form ref={form} onSubmit={(e) => e.preventDefault()} className="upload-form">
           <label>3D Model File (.glb)
-            <input type="file" accept=".glb" onChange={(e) => pickModel(e.target.files?.[0])} />
+            <input className="control" type="file" accept=".glb" onChange={(e) => pickModel(e.target.files?.[0])} />
             <small className="muted">Max file size: 100MB. Stored exactly as uploaded.</small>
           </label>
           {model && (
@@ -380,19 +392,19 @@ export function ModelUpload({ onUploaded }: { onUploaded: (product: CataloguePro
             </div>
           )}
           <label>Display Name
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Modern Chair" />
+            <input className="control" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Modern Chair" />
           </label>
           <label>Item Type
-            <select value={type} onChange={(e) => setType(e.target.value)}>
+            <select className="control" value={type} onChange={(e) => setType(e.target.value)}>
               {ITEM_TYPES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
           </label>
           <label>Thumbnail Image (optional)
-            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setThumb(e.target.files?.[0] ?? null)} />
+            <input className="control" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setThumb(e.target.files?.[0] ?? null)} />
             <small className="muted">If not provided, the preview above is used.</small>
           </label>
           <label>Scale
-            <select value={scale} onChange={(e) => setScale(e.target.value)}>
+            <select className="control" value={scale} onChange={(e) => setScale(e.target.value)}>
               {SCALES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
             <small className="muted">If the model appears too small or too large, try a different scale option.</small>
@@ -401,8 +413,8 @@ export function ModelUpload({ onUploaded }: { onUploaded: (product: CataloguePro
         {progress !== null && (
           <p><progress value={progress} /> {progress < 1 ? `Uploading… ${Math.round(progress * 100)}%` : "Measuring…"}</p>
         )}
-        {done && <p className="notice" role="status">{done}</p>}
-        {error && <p className="error" role="alert">Error: {error}</p>}
+        {done && <p className="alert success" role="status"><strong>Success!</strong> {done}</p>}
+        {error && <p className="alert danger" role="alert"><strong>Error:</strong> {error}</p>}
       </Modal>
     </>
   );

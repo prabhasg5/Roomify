@@ -1,21 +1,110 @@
-html, body, #root { margin: 0; height: 100%; }
-body { font: 14px/1.4 system-ui, sans-serif; color: #222; background: #fff; }
-.app { display: flex; flex-direction: column; height: 100%; }
-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
+/* The old app's look (example/index.html + example.css on Bootstrap 3.3.5), in plain CSS.
+   Values are Bootstrap's: #333 text, #337ab7 primary, 4 px radii, 6×12 / 5×10 button padding. */
+html, body, #root { margin: 0; height: 100%; overflow: hidden; }
+body { font: 14px/1.42857 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #333; background: #fff; }
+button, input, select { font: inherit; color: inherit; }
+hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
+small { font-size: 85%; }
 .muted { color: #777; }
+p { margin: 0; }
+
+/* Buttons: plain <button> is btn-default; .primary/.success/.info/.warning/.danger colour it,
+   .sm is btn-sm, .block is btn-block. data-icon puts a glyph before the label. */
+button, .button { display: inline-block; padding: 6px 12px; font-size: 14px; line-height: 1.42857; text-align: center;
+  white-space: nowrap; vertical-align: middle; cursor: pointer; user-select: none;
+  color: #333; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
+button:hover, .button:hover { background: #e6e6e6; border-color: #adadad; }
+button:active, button[aria-pressed=true] { box-shadow: inset 0 3px 5px rgba(0,0,0,.125); }
+button:disabled { cursor: not-allowed; opacity: .65; box-shadow: none; }
+.sm { padding: 5px 10px; font-size: 12px; line-height: 1.5; border-radius: 3px; }
+.block { display: block; width: 100%; }
+[data-icon]::before { content: attr(data-icon) " "; }
+/* Old glyphicon-phone, drawn: no icon font. */
+[data-icon=phone]::before { content: ""; display: inline-block; width: .45em; height: .75em; margin-right: .35em;
+  vertical-align: -.05em; border: .12em solid currentColor; border-radius: .12em; }
+button.primary { color: #fff; background: #337ab7; border-color: #2e6da4; }
+button.primary:hover { background: #286090; border-color: #204d74; }
+button.success { color: #fff; background: #5cb85c; border-color: #4cae4c; }
+button.success:hover { background: #449d44; border-color: #398439; }
+button.info { color: #fff; background: #5bc0de; border-color: #46b8da; }
+button.info:hover { background: #31b0d5; border-color: #269abc; }
+button.warning { color: #fff; background: #f0ad4e; border-color: #eea236; }
+button.warning:hover { background: #ec971f; border-color: #d58512; }
+button.danger { color: #fff; background: #d9534f; border-color: #d43f3a; }
+button.danger:hover { background: #c9302c; border-color: #ac2925; }
+/* Old #exportAR / #downloadGLB. */
+button.ar { color: #fff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: transparent; }
+button.ar:hover { background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%); }
+button.glb { color: #fff; background: #17a2b8; border-color: transparent; }
+button.glb:hover { background: #138496; }
+button.success:disabled:hover { background: #5cb85c; }
+
+/* Form controls (Bootstrap .form-control). */
+.control { display: block; width: 100%; box-sizing: border-box; height: 34px; padding: 6px 12px; color: #555;
+  background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: inset 0 1px 1px rgba(0,0,0,.075); }
+.control:focus { border-color: #66afe9; outline: 0; box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6); }
+input[type=file].control { height: auto; padding: 6px 12px; }
+.field { display: block; font-weight: bold; margin-bottom: 15px; }
+.field .control { margin-top: 5px; font-weight: normal; }
+.field small { display: block; margin-top: 5px; font-weight: normal; }
+.check { display: block; cursor: pointer; }
+
+/* Panels (Bootstrap .panel-default), also the Adjust Size fieldset. */
+.box { margin: 0 0 20px; padding: 0; min-width: 0; background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+.box-head { padding: 10px 15px; color: #333; background: #f5f5f5; border-bottom: 1px solid #ddd; border-radius: 3px 3px 0 0; }
+.box-body { padding: 15px; }
+.box-body p { margin: 0 0 10px; }
+.box-body p:last-child { margin: 0; }
+
+.alert { margin: 0; padding: 15px; border: 1px solid transparent; border-radius: 4px; }
+.alert.info { color: #31708f; background: #d9edf7; border-color: #bce8f1; }
+.alert.success { color: #3c763d; background: #dff0d8; border-color: #d6e9c6; }
+.alert.danger { color: #a94442; background: #f2dede; border-color: #ebccd1; }
+.alert ol { margin: 10px 0 0; padding-left: 20px; }
+.badge { display: inline-block; padding: 3px 7px; font-size: 12px; font-weight: bold; line-height: 1; color: #fff;
+  background: #777; border-radius: 10px; }
+.notice { padding: 6px 10px; color: #3c763d; background: #dff0d8; border: 1px solid #d6e9c6; border-radius: 4px; font-size: 12px; }
+
+/* Layout: old .sidebar (col-xs-3) | .main (col-xs-9). */
+.app { display: flex; height: 100%; }
+.sidebar { flex: 0 0 25%; box-sizing: border-box; display: flex; flex-direction: column; padding: 20px;
+  overflow: hidden auto; border-right: 1px solid #eee; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .errors { margin: 0; padding: 8px 12px 8px 32px; background: #fdecea; color: #8a1c13; border-bottom: 1px solid #f5c2bd; }
 main { flex: 1; min-height: 0; position: relative; }
-.panel { position: absolute; top: 12px; right: 12px; width: 220px; display: flex; flex-direction: column; gap: 8px;
-  padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-.panel fieldset { border: 1px solid #ddd; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-.panel fieldset label { display: flex; justify-content: space-between; }
-.panel input[type=number] { width: 70px; }
-.modes { display: flex; gap: 4px; }
-.modes button { flex: 1; text-transform: capitalize; }
-.modes button[aria-pressed=true] { background: #337ab7; color: #fff; border-color: #2e6da4; }
-.danger { background: #d9534f; color: #fff; border: 1px solid #d43f3a; padding: 6px; border-radius: 3px; }
-.tabs { display: flex; gap: 4px; }
-.tabs button[aria-selected=true] { background: #337ab7; color: #fff; border-color: #2e6da4; }
+
+/* Old .nav-sidebar: full-bleed rows, chevron right, active #428bca. */
+.nav { display: flex; flex-direction: column; margin: 0 -21px 20px -20px; }
+.nav button { display: flex; justify-content: space-between; padding: 10px 20px; text-align: left; color: #337ab7;
+  background: none; border: 0; border-radius: 0; box-shadow: none; }
+.nav button::after { content: "›"; font-size: 22px; line-height: 18px; font-weight: bold; }
+.nav button:hover { color: #23527c; background: #eee; }
+.nav button[aria-selected=true] { color: #fff; background: #428bca; }
+.sidebar .actions { display: flex; flex-direction: column; gap: 10px; padding: 10px 20px; border-bottom: 1px solid #eee; }
+.sidebar .clear { padding: 5px 20px; }
+.context-menu { margin: 15px 20px 0; }
+.context-menu .lead { display: block; margin: 0 0 20px; font-size: 21px; font-weight: 300; line-height: 1.4; }
+.context-menu > .block { margin-bottom: 20px; }
+.context-menu .box-body .row { display: grid; grid-template-columns: 5fr 6fr; gap: 15px; align-items: center;
+  margin-bottom: 15px; font-weight: bold; text-align: right; }
+.context-menu .check { font-weight: bold; margin-bottom: 20px; }
+.textures-box { margin: 15px 20px 0; }
+.textures { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.thumbnail { padding: 4px; background: #fff; border: 1px solid #ddd; border-radius: 4px; line-height: 0; }
+.thumbnail:hover { border-color: #337ab7; background: #fff; }
+.thumbnail img { width: 100%; display: block; }
+.source { margin-top: auto; padding-top: 20px; display: flex; flex-direction: column; gap: 4px; }
+.source label { color: #777; font-size: 12px; }
+.source .control { margin-top: 4px; height: 30px; padding: 5px 10px; font-size: 12px; }
+
+/* 3D view: old #main-controls (top left) and #camera-controls (bottom right). */
+.main-controls { position: absolute; top: 20px; left: 20px; display: flex; flex-wrap: wrap; gap: 4px; }
+.camera-controls { position: absolute; bottom: 20px; right: 20px; display: flex; }
+.camera-controls button { width: 40px; font-size: 16px; padding: 4px 0; border-radius: 0; margin-left: -1px; }
+.camera-controls button:first-child { border-radius: 4px 0 0 4px; }
+.camera-controls button:last-child { border-radius: 0 4px 4px 0; }
+.camera-controls button[aria-pressed=true] { color: #fff; background: #337ab7; border-color: #2e6da4; box-shadow: none; }
 
 /* 2D floorplanner: old floorplanner_view.ts colours and sizes. Strokes are screen px
    (non-scaling); radii and text scale by --px (cm per screen px), set with the zoom. */
@@ -42,65 +131,70 @@ main { flex: 1; min-height: 0; position: relative; }
 .plan2d .labels text { pointer-events: none; font-family: Arial, sans-serif; font-size: calc(12px * var(--px));
   text-anchor: middle; dominant-baseline: middle; fill: #000;
   stroke: #fff; stroke-width: calc(4px * var(--px)); paint-order: stroke; stroke-linejoin: round; }
-.plan2d .tools { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; }
-.plan2d .tools button[aria-pressed=true] { background: #337ab7; color: #fff; border-color: #2e6da4; }
-.plan2d .hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-  padding: 6px 12px; background: rgba(0,0,0,.7); color: #fff; border-radius: 4px; pointer-events: none; }
+/* Old #floorplanner-controls: modes, Import CAD (10 px apart), "Done »" on the right; the active
+   mode is btn-primary + disabled-looking. */
+.plan2d .tools { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; align-items: center; gap: 4px; }
+.plan2d .tools button[aria-pressed=true] { color: #fff; background: #337ab7; border-color: #2e6da4; opacity: .65; box-shadow: none; }
+.plan2d .tools .import-cad { margin-left: 10px; }
+.plan2d .tools .done { margin-left: auto; }
+.plan2d .hint { position: absolute; bottom: 20px; left: 20px; padding: 5px 10px; background: rgba(0,0,0,.5); color: #fff;
+  pointer-events: none; z-index: 10; }
 
-/* File menu, catalogue (old "Add Items" tab) and texture picker (old "Adjust Wall/Floor"). */
-.file-menu { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.file-menu .button { padding: 1px 6px; border: 1px solid #767676; border-radius: 3px; background: #efefef; cursor: pointer; }
-.warning { background: #f0ad4e; border: 1px solid #eea236; border-radius: 3px; }
-.catalogue { position: absolute; inset: 0; overflow: auto; padding: 12px; background: #fff;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; }
-.card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;
-  background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
-.card:hover { border-color: #337ab7; }
-.card img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+/* Add Items: old #add-items with the upload strip, "My uploaded models" and "Built-in models". */
+.catalogue { position: absolute; inset: 0; overflow: auto; padding: 20px; background: #fff; }
+.catalogue .upload-bar { margin: 0 -5px; padding: 10px 15px; background: #f9f9f9; border-bottom: 2px solid #eee; }
+.catalogue h5 { margin: 10px 15px 5px; color: #999; text-transform: uppercase; font-size: 11px; font-weight: 500; letter-spacing: 1px; }
+.catalogue hr { margin: 5px 15px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 30px; padding: 0 15px; }
+.card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin-bottom: 20px; padding: 4px;
+  text-align: left; white-space: normal; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+.card:hover { background: #fff; border-color: #337ab7; }
+.card img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
+.card .name { color: #337ab7; }
 .price { color: #3c763d; font-weight: 600; }
-.textures { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.textures button { padding: 2px; background: #fff; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
-.textures img { width: 100%; display: block; }
+.heavy { color: #8a6d3b; background: #fcf8e3; border-radius: 3px; padding: 0 4px; font-size: 12px; }
+.card-wrap { position: relative; display: grid; }
+.card-wrap .remove { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 10px;
+  background: #d9534f; color: #fff; font-size: 14px; font-weight: bold; line-height: 1; }
 
-/* CAD import and Export to AR (old cad-import-modal / ar-modal). */
-.plan2d .tools { align-items: center; }
-.notice { padding: 2px 8px; background: #dff0d8; color: #3c763d; border-radius: 3px; }
-button.info { background: #5bc0de; color: #fff; border: 1px solid #46b8da; border-radius: 3px; }
-button.success { background: #5cb85c; color: #fff; border: 1px solid #4cae4c; border-radius: 3px; }
-button.success:disabled { opacity: .5; }
-dialog.modal { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; border: 1px solid #ccc;
-  border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,.3); }
+/* Modals: Bootstrap .modal-dialog; .cad and .ar are old #cad-import-modal / #ar-modal. */
+dialog.modal { width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 60px); margin: 30px auto auto; padding: 0;
+  border: 1px solid rgba(0,0,0,.2); border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,.5); }
+dialog.modal.cad { width: min(550px, calc(100vw - 32px)); margin-top: 40px; border: 0; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+dialog.modal.ar { width: min(500px, calc(100vw - 32px)); margin-top: 50px; border: 0; border-radius: 8px; box-shadow: 0 5px 30px rgba(0,0,0,.3); }
 dialog.modal::backdrop { background: rgba(0,0,0,.5); }
-dialog.modal > header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e5e5e5; }
-dialog.modal h4 { margin: 0; font-size: 18px; }
-dialog.modal .close { border: 0; background: none; font-size: 22px; cursor: pointer; color: #999; }
-dialog.modal .body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-dialog.modal > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #e5e5e5; }
-dialog.modal footer button { padding: 6px 12px; }
-dialog.modal fieldset { border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; }
-dialog.modal fieldset p { margin: 0; }
-dialog.modal .layers { max-height: 180px; overflow: auto; }
-dialog.modal input:not([type=checkbox]), dialog.modal select { width: 100%; box-sizing: border-box; padding: 4px; }
-.badge { background: #777; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 12px; }
-.alert { margin: 0; padding: 10px 12px; border-radius: 4px; }
-.alert.info { background: #d9edf7; color: #31708f; }
-.alert.success { background: #dff0d8; color: #3c763d; }
-.alert.danger { background: #f2dede; color: #a94442; }
-.alert ol { margin: 6px 0 0; padding-left: 20px; }
+dialog.modal.cad::backdrop { background: rgba(0,0,0,.6); }
+dialog.modal > header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #e5e5e5; }
+dialog.modal.cad > header { padding: 15px 20px; color: #fff; background: linear-gradient(135deg, #5bc0de 0%, #31b0d5 100%); border: 0; }
+dialog.modal.ar > header { padding: 15px 20px; color: #fff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: 0; }
+dialog.modal h4 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.42857; }
+dialog.modal .close { padding: 0; border: 0; background: none; box-shadow: none; font-size: 21px; font-weight: bold; line-height: 1;
+  color: #000; opacity: .2; }
+dialog.modal .close:hover { opacity: .5; }
+dialog.modal.cad .close, dialog.modal.ar .close { color: #fff; opacity: .8; font-size: 28px; font-weight: normal; }
+dialog.modal.cad .close:hover, dialog.modal.ar .close:hover { opacity: 1; }
+dialog.modal .body { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+dialog.modal.cad .body, dialog.modal.ar .body { padding: 20px; }
+dialog.modal .body .box { margin: 0; }
+dialog.modal > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 15px; border-top: 1px solid #e5e5e5; }
+dialog.modal.cad > footer, dialog.modal.ar > footer { padding: 15px 20px; border-color: #eee; }
+.layers { max-height: 180px; overflow: auto; }
+.layer { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+.layer:last-child { border-bottom: 0; }
+.layer .badge { margin-left: 8px; }
+.layer small { font-size: 11px; }
 .qr { text-align: center; }
-.qr canvas { background: #fff; padding: 10px; border-radius: 10px; }
-.center { text-align: center; margin: 0; }
-.url { display: flex; gap: 4px; }
+.qr canvas { display: inline-block; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,.1); }
+.center { text-align: center; color: #666; }
+.url { display: flex; }
+.url .control { border-radius: 4px 0 0 4px; background: #eee; }
+.url button { border-radius: 0 4px 4px 0; margin-left: -1px; }
 .loading { text-align: center; padding: 30px; }
 
-/* Model upload (old upload-model-modal) and heavy-model warnings. */
-.catalogue .upload { grid-column: 1 / -1; justify-self: start; padding: 6px 12px; cursor: pointer; }
-.upload-form { display: flex; flex-direction: column; gap: 10px; }
-.upload-form label { display: flex; flex-direction: column; gap: 4px; }
-.preview { position: relative; width: 256px; height: 256px; border: 1px solid #ddd; border-radius: 4px; align-self: center; }
+/* Model upload (old upload-model-modal) and its 3D preview. */
+.upload-form { display: flex; flex-direction: column; }
+.upload-form > label { display: block; font-weight: bold; margin-bottom: 15px; }
+.upload-form > label .control { margin-top: 5px; font-weight: normal; }
+.upload-form > label small { display: block; margin-top: 5px; font-weight: normal; }
+.preview { position: relative; width: 256px; height: 256px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; align-self: center; }
 .preview span { position: absolute; inset: 0; display: grid; place-items: center; }
-.heavy { color: #8a6d3b; background: #fcf8e3; border-radius: 3px; padding: 0 4px; font-size: 12px; }
-p.error { color: #a94442; background: #f2dede; padding: 6px 8px; border-radius: 3px; margin: 0; }
-.card-wrap { position: relative; display: grid; }
-.card-wrap .remove { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border: 0; border-radius: 11px;
-  background: #d9534f; color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }

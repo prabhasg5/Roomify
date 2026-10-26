@@ -99,12 +99,29 @@ async function loadSource(name: string) {
 function App() {
   const source = useViewer((s) => s.source);
   const errors = useViewer((s) => s.errors);
-  const design = useViewer((s) => s.design);
   // Both tabs stay mounted over the same store, so neither loses its camera/view or the selection.
   const [tab, setTab] = useState<"3d" | "2d" | "items">("3d");
   const show = (next: typeof tab) => {
     setTab(next);
     useViewer.getState().pickSurface(null); // old TextureSelector resets on a tab change
+  };
+  // Save and GLB results, shared by the main controls and the sidebar's Download GLB.
+  const [notice, setNotice] = useState("");
+  useEffect(() => setNotice(""), [source]); // a save notice is about the design it saved
+
+  // Old "Download GLB" saved the design JSON; this is the room itself.
+  const downloadGlb = async () => {
+    setNotice("Exporting GLB…");
+    try {
+      const glb = await exportGlb();
+      download(new Blob([glb], { type: "model/gltf-binary" }), "room.glb");
+      setNotice(`Downloaded room.glb (${(glb.byteLength / 1024 / 1024).toFixed(1)} MB)`);
+    } catch (e) {
+      setNotice(`GLB export failed: ${(e as Error).message}`);
+    }
+  };
+  const clearAll = () => {
+    if (confirm("Remove all placed items from the 3D scene?")) useViewer.getState().clearItems();
   };
 
   useEffect(() => {
@@ -125,46 +142,73 @@ function App() {
     };
   }, []);
 
+  const tabs: [typeof tab, string][] = [["2d", "Edit Floorplan"], ["3d", "Design"], ["items", "Add Items"]];
   return (
     <div className="app">
-      <header>
-        <strong>Roomify</strong>
-        <div className="tabs" role="tablist">
-          <button role="tab" aria-selected={tab === "3d"} onClick={() => show("3d")}>3D view</button>
-          <button role="tab" aria-selected={tab === "2d"} onClick={() => show("2d")}>2D floorplan</button>
-          <button role="tab" aria-selected={tab === "items"} onClick={() => show("items")}>Add items</button>
+      {/* Old index.html's left column: nav, AR + GLB, Clear All, then the context menu or texture picker. */}
+      <aside className="sidebar">
+        <nav className="nav" role="tablist">
+          {tabs.map(([t, label]) => (
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => show(t)}>{label}</button>
+          ))}
+        </nav>
+        <div className="actions">
+          <ArExport className="ar block" />
+          <button className="glb block" data-icon="⤓" onClick={downloadGlb}>Download GLB</button>
+          {notice && <p className="notice" role="status">{notice}</p>}
         </div>
-        <select value={source} onChange={(e) => { location.hash = e.target.value; }} aria-label="Design">
+        <hr />
+        <div className="clear">
+          <button className="warning sm block" data-icon="⊗" onClick={clearAll}>Clear All Placed Items</button>
+        </div>
+        {tab === "3d" && <ItemPanel />}
+        {tab === "3d" && <TexturePanel />}
+        <SourcePicker />
+      </aside>
+      <div className="main">
+        {errors.length > 0 && (
+          <ul className="errors" role="alert">
+            {errors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        )}
+        <main>
+          {/* flat = no tone mapping, as r69. */}
+          <Canvas
+            flat camera={{ fov: 45, near: 1, far: 100000 }} events={(s) => ({ ...events(s), filter: onlyShown })} gl={{ preserveDrawingBuffer: true }} frameloop={tab === "3d" ? "always" : "never"}
+            onPointerMissed={(e) => {
+              if (e.button !== 0 || gizmoHot()) return;
+              // Old controller: a click on no item deselects, then a wall side or floor opens its textures.
+              useViewer.getState().select(null);
+              useViewer.getState().pickSurface(surfaceUnder(e));
+            }}
+          >
+            <Scene key={source} />
+          </Canvas>
+          {tab === "3d" && <MainControls onGlb={downloadGlb} say={setNotice} />}
+          {tab === "3d" && <GizmoModes />}
+          {tab === "items" && <CataloguePanel onAdded={() => show("3d")} />}
+          <Floorplanner shown={tab === "2d"} onDone={() => show("3d")} />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+/** The design picker (fixtures, saved, problem GLB; the URL hash), with the plan's size and the loading counter. */
+function SourcePicker() {
+  const source = useViewer((s) => s.source);
+  const design = useViewer((s) => s.design);
+  return (
+    <div className="source">
+      <label><strong>Roomify</strong> design file
+        <select className="control" value={source} onChange={(e) => { location.hash = e.target.value; }}>
           {!sources[source] && <option value={source}>{source}</option>}
           {Object.entries(sources).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}
         </select>
-        <FileMenu />
-        {design && <span className="muted">{design.walls.length} walls · {design.items.length} items</span>}
-        <Progress />
-      </header>
-      {errors.length > 0 && (
-        <ul className="errors" role="alert">
-          {errors.map((e, i) => <li key={i}>{e}</li>)}
-        </ul>
-      )}
-      <main>
-        {/* flat = no tone mapping, as r69. */}
-        <Canvas
-          flat camera={{ fov: 45, near: 1, far: 100000 }} events={(s) => ({ ...events(s), filter: onlyShown })} gl={{ preserveDrawingBuffer: true }} frameloop={tab === "3d" ? "always" : "never"}
-          onPointerMissed={(e) => {
-            if (e.button !== 0 || gizmoHot()) return;
-            // Old controller: a click on no item deselects, then a wall side or floor opens its textures.
-            useViewer.getState().select(null);
-            useViewer.getState().pickSurface(surfaceUnder(e));
-          }}
-        >
-          <Scene key={source} />
-        </Canvas>
-        {tab === "3d" && <ItemPanel />}
-        {tab === "3d" && <TexturePanel />}
-        {tab === "items" && <CataloguePanel onAdded={() => show("3d")} />}
-        <Floorplanner shown={tab === "2d"} />
-      </main>
+      </label>
+      <small className="muted">
+        {design && `${design.walls.length} walls · ${design.items.length} items`} <Progress />
+      </small>
     </div>
   );
 }
@@ -179,7 +223,7 @@ const dimsToSize = (d: CatalogueVariant["dimensions"]): Vec3 | undefined => d &&
 
 /** The old context menu: name, delete, size in inches, lock in place; plus gizmo mode and variant. */
 function ItemPanel() {
-  const { design, selected, models, sizes, gizmo, setGizmo, updateItem, deleteItem } = useViewer();
+  const { design, selected, models, sizes, updateItem, deleteItem } = useViewer();
   if (!design || selected === null || !design.items[selected]) return null;
   const index = selected;
   const item = design.items[index];
@@ -207,46 +251,54 @@ function ItemPanel() {
   const dims: [keyof Vec3, string][] = [["x", "Width"], ["z", "Depth"], ["y", "Height"]];
 
   return (
-    <aside className="panel" aria-label="Selected item">
-      <strong>{item.name}</strong>
-      <div className="modes" role="group" aria-label="Gizmo">
-        {(["translate", "rotate", "scale"] as const).map((m) => (
-          <button key={m} aria-pressed={gizmo === m} onClick={() => setGizmo(m)} title={`${m} (${m[0].toUpperCase()})`}>{m}</button>
-        ))}
-      </div>
+    <section className="context-menu" aria-label="Selected item">
+      <span className="lead">{item.name}</span>
       {variants.length > 1 && (
-        <label>Variant{" "}
-          <select value={item.variantId} onChange={(e) => swapVariant(e.target.value)}>
+        <label className="field">Variant
+          <select className="control" value={item.variantId} onChange={(e) => swapVariant(e.target.value)}>
             {variants.map((v) => <option key={v.id} value={v.id}>{v.label ?? v.id}</option>)}
           </select>
         </label>
       )}
-      <fieldset disabled={!size}>
-        <legend>Size (inches)</legend>
-        {dims.map(([axis, label]) => {
-          const value = size ? ((size[axis] * item.scale[axis]) / IN).toFixed(0) : "";
-          return (
-            <label key={axis}>{label}{" "}
-              <input
-                key={`${index}:${value}`} type="number" min={1} defaultValue={value}
-                onBlur={(e) => e.target.value !== value && resize(axis, Number(e.target.value))}
-                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-              />
-            </label>
-          );
-        })}
+      <button className="danger block" data-icon="✕" onClick={() => deleteItem(index)}>Delete Item</button>
+      <fieldset className="box" disabled={!size} aria-label="Adjust Size">
+        <div className="box-head">Adjust Size</div>
+        <div className="box-body">
+          {dims.map(([axis, label]) => {
+            const value = size ? ((size[axis] * item.scale[axis]) / IN).toFixed(0) : "";
+            return (
+              <label key={axis} className="row">{label}
+                <input
+                  key={`${index}:${value}`} className="control" type="number" min={1} defaultValue={value}
+                  onBlur={(e) => e.target.value !== value && resize(axis, Number(e.target.value))}
+                  onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                />
+              </label>
+            );
+          })}
+          <small className="muted">Measurements in inches.</small>
+        </div>
       </fieldset>
-      <label><input type="checkbox" checked={item.fixed} onChange={(e) => updateItem(index, { fixed: e.target.checked })} /> Lock in place</label>
-      <button className="danger" onClick={() => deleteItem(index)}>Delete item</button>
-    </aside>
+      <label className="check"><input type="checkbox" checked={item.fixed} onChange={(e) => updateItem(index, { fixed: e.target.checked })} /> Lock in place</label>
+    </section>
   );
 }
 
-/** Old main-controls: New Plan, Save Plan, Load Plan; plus the two saves old "Export to AR" did, and Clear All. */
-function FileMenu() {
-  const [notice, setNotice] = useState("");
-  const source = useViewer((s) => s.source);
-  useEffect(() => setNotice(""), [source]); // a save notice is about the design it saved
+/** Old camera-controls' gizmo group (bottom right of the 3D view); T / R / S do the same. */
+function GizmoModes() {
+  const { gizmo, setGizmo } = useViewer();
+  const icons = { translate: "✥", rotate: "↻", scale: "⤢" };
+  return (
+    <div className="camera-controls" role="group" aria-label="Gizmo">
+      {(["translate", "rotate", "scale"] as const).map((m) => (
+        <button key={m} aria-pressed={gizmo === m} onClick={() => setGizmo(m)} title={`${m[0].toUpperCase()}${m.slice(1)} (${m[0].toUpperCase()})`} aria-label={m}>{icons[m]}</button>
+      ))}
+    </div>
+  );
+}
+
+/** Old main-controls: New Plan, Save Plan, Load Plan, Export to AR, Download GLB; plus the two saves old "Export to AR" did. */
+function MainControls({ onGlb, say: setNotice }: { onGlb: () => void; say: (notice: string) => void }) {
   const legacy = () => {
     const d = useViewer.getState().design;
     return d ? JSON.stringify(toDesign(d)) : null;
@@ -254,17 +306,6 @@ function FileMenu() {
   const saveFile = () => {
     const data = legacy();
     if (data) download(new Blob([data], { type: "text" }), "design.blueprint3d");
-  };
-  // Old "Download GLB" saved the design JSON; this is the room itself.
-  const downloadGlb = async () => {
-    setNotice("Exporting GLB…");
-    try {
-      const glb = await exportGlb();
-      download(new Blob([glb], { type: "model/gltf-binary" }), "room.glb");
-      setNotice(`Downloaded room.glb (${(glb.byteLength / 1024 / 1024).toFixed(1)} MB)`);
-    } catch (e) {
-      setNotice(`GLB export failed: ${(e as Error).message}`);
-    }
   };
   const saveBrowser = () => {
     const data = legacy();
@@ -287,14 +328,11 @@ function FileMenu() {
     history.replaceState(null, "", `#${DEFAULT_SOURCE}`);
     loadSource(DEFAULT_SOURCE);
   };
-  const clearAll = () => {
-    if (confirm("Remove all placed items from the 3D scene?")) useViewer.getState().clearItems();
-  };
   return (
-    <span className="file-menu">
-      <button onClick={newPlan}>New plan</button>
-      <button onClick={saveFile}>Save plan</button>
-      <label className="button">Load plan
+    <div className="main-controls">
+      <button className="sm" onClick={newPlan}>New Plan</button>
+      <button className="sm" onClick={saveFile}>Save Plan</button>
+      <label className="button sm">Load Plan
         <input
           type="file" hidden
           onChange={async (e) => {
@@ -304,13 +342,11 @@ function FileMenu() {
           }}
         />
       </label>
-      <button onClick={saveBrowser}>Save to browser</button>
-      <button onClick={saveServer}>Save to server</button>
-      <button onClick={downloadGlb}>Download GLB</button>
-      <ArExport />
-      <button className="warning" onClick={clearAll}>Clear all placed items</button>
-      {notice && <span className="muted" role="status">{notice}</span>}
-    </span>
+      <button className="sm" onClick={saveBrowser}>Save to Browser</button>
+      <button className="sm" onClick={saveServer}>Save to Server</button>
+      <ArExport className="ar sm" />
+      <button className="glb sm" data-icon="⤓" onClick={onGlb}>Download GLB</button>
+    </div>
   );
 }
 
@@ -337,28 +373,37 @@ function CataloguePanel({ onAdded }: { onAdded: () => void }) {
     if (!r?.ok) useViewer.getState().addError(`Failed to delete model "${p.name}": ${r ? `HTTP ${r.status}` : "server unreachable"}`);
     loadCatalogue();
   };
+  // Only what POST /api/uploads stored can be deleted (couch and sofa-2 are catalogue builds).
+  const uploaded = (v: CatalogueVariant) => !!v.glb?.startsWith("models/uploads/");
+  const cards = (mine: boolean) => products.flatMap((p) => p.variants.filter((v) => v.glb && uploaded(v) === mine).map((v) => {
+    const name = p.variants.length > 1 ? `${p.name} - ${v.label ?? v.id}` : p.name;
+    const price = p.price != null ? p.price + (v.price_delta ?? 0) : null;
+    const warn = heavy(v.stats);
+    return (
+      <div key={`${p.id}/${v.id}`} className="card-wrap">
+        <button className="card" onClick={() => add(p, v, name)} disabled={!design}>
+          {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" />}
+          <span className="name">{name}</span>
+          {price != null && <span className="price">{IN_RUPEES.format(price)}</span>}
+          {warn.length > 0 && <span className="heavy" title={warn.join("\n")}>⚠ heavy model: {warn.join(", ")}</span>}
+        </button>
+        {mine && <button className="remove" title="Delete" aria-label={`Delete ${p.name}`} onClick={() => remove(p)}>&times;</button>}
+      </div>
+    );
+  }));
+  const mine = cards(true);
   return (
     <section className="catalogue" aria-label="Catalogue">
-      <ModelUpload onUploaded={loadCatalogue} />
-      {products.flatMap((p) => p.variants.filter((v) => v.glb).map((v) => {
-        const name = p.variants.length > 1 ? `${p.name} - ${v.label ?? v.id}` : p.name;
-        const price = p.price != null ? p.price + (v.price_delta ?? 0) : null;
-        const warn = heavy(v.stats);
-        return (
-          <div key={`${p.id}/${v.id}`} className="card-wrap">
-            <button className="card" onClick={() => add(p, v, name)} disabled={!design}>
-              {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" />}
-              <span>{name}</span>
-              {price != null && <span className="price">{IN_RUPEES.format(price)}</span>}
-              {warn.length > 0 && <span className="heavy" title={warn.join("\n")}>⚠ heavy model: {warn.join(", ")}</span>}
-            </button>
-            {/* Only what POST /api/uploads stored can be deleted (couch and sofa-2 are catalogue builds). */}
-            {v.glb?.startsWith("models/uploads/") && (
-              <button className="remove" title="Delete" aria-label={`Delete ${p.name}`} onClick={() => remove(p)}>&times;</button>
-            )}
-          </div>
-        );
-      }))}
+      <div className="upload-bar"><ModelUpload onUploaded={loadCatalogue} /></div>
+      {mine.length > 0 && (
+        <>
+          <h5>My Uploaded Models</h5>
+          <div className="cards">{mine}</div>
+          <hr />
+        </>
+      )}
+      <h5>Built-in Models</h5>
+      <div className="cards">{cards(false)}</div>
     </section>
   );
 }
@@ -382,16 +427,16 @@ function TexturePanel() {
   if (!surface) return null;
   const options = surface.kind === "wall" ? WALL_TEXTURES : FLOOR_TEXTURES;
   return (
-    <aside className="panel" aria-label="Textures">
-      <strong>{surface.kind === "wall" ? "Adjust wall" : "Adjust floor"}</strong>
-      <div className="textures">
+    <section className="box textures-box" aria-label="Textures">
+      <div className="box-head">{surface.kind === "wall" ? "Adjust Wall" : "Adjust Floor"}</div>
+      <div className="box-body textures">
         {options.map(({ thumb, ...texture }) => (
-          <button key={texture.url} onClick={() => setTexture(surface, texture)} title={texture.url}>
+          <button key={texture.url} className="thumbnail" onClick={() => setTexture(surface, texture)} title={texture.url}>
             <img src={thumb} alt={texture.url.split("/").pop()} />
           </button>
         ))}
       </div>
-    </aside>
+    </section>
   );
 }
 

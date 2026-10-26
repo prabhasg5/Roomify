@@ -39,7 +39,7 @@ const setLine = (l: Element, a: Point, b: Point) => {
   l.setAttribute("y2", String(b.y));
 };
 
-export function Floorplanner({ shown }: { shown: boolean }) {
+export function Floorplanner({ shown, onDone }: { shown: boolean; onDone: () => void }) {
   const design = useViewer((s) => s.design);
   const source = useViewer((s) => s.source);
   const [mode, setMode] = useState<Mode>("move");
@@ -292,10 +292,12 @@ export function Floorplanner({ shown }: { shown: boolean }) {
         </g>
       </svg>
       <div className="tools" role="group" aria-label="2D mode">
-        <button aria-pressed={mode === "move"} onClick={() => changeMode("move")}>Move Walls</button>
-        <button aria-pressed={mode === "draw"} onClick={() => changeMode("draw")}>Draw Walls</button>
-        <button aria-pressed={mode === "delete"} onClick={() => changeMode("delete")}>Delete Walls</button>
+        <button className="sm" data-icon="✥" aria-pressed={mode === "move"} onClick={() => changeMode("move")}>Move Walls</button>
+        <button className="sm" data-icon="✎" aria-pressed={mode === "draw"} onClick={() => changeMode("draw")}>Draw Walls</button>
+        <button className="sm" data-icon="✖" aria-pressed={mode === "delete"} onClick={() => changeMode("delete")}>Delete Walls</button>
         <CadImport />
+        {/* Old "Done »": back to the 3D view. */}
+        <button className="primary sm done" onClick={onDone}>Done &raquo;</button>
       </div>
       {mode === "draw" && <div className="hint">Press the "Esc" key to stop drawing walls</div>}
     </div>
