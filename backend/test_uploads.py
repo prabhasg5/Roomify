@@ -15,6 +15,7 @@ import glb
 import main
 
 main.UPLOADS = Path(tempfile.mkdtemp())        # don't write into example/models/uploads
+main.CATALOGUE_DB = main.UPLOADS / "catalogue.db"   # ...or the real catalogue DB
 client = TestClient(main.app)
 APP = main.ROOT / "3d_room"
 PROBLEM = APP / "example/models/glb/white-sofa-1790761067934.glb"
@@ -81,8 +82,11 @@ assert bad(thumbnail=("t.txt", b"hello")).status_code == 422
 main.MAX_MODEL, cap = 1000, main.MAX_MODEL
 assert bad().status_code == 413
 main.MAX_MODEL = cap
-before = json.loads((main.UPLOADS / "uploads.json").read_text())
-assert len(before) == (2 if PROBLEM.exists() else 1), "refused uploads leave no entry"
+with main.catalogue_db() as con:
+    rows = con.execute("select count(*) from products where retailer_id = 'upload'").fetchone()[0]
+assert rows == (2 if PROBLEM.exists() else 1), "refused uploads leave no entry"
+assert sorted(p.name for p in main.UPLOADS.glob("*.glb")) == (
+    ["sofa-2-2.glb", "white-sofa.glb"] if PROBLEM.exists() else ["sofa-2-2.glb"]), "...and no file"
 
 # delete: files and entry go, built-ins can't be deleted, the id is never handed out again
 assert client.delete("/api/uploads/sofa-2").status_code == 404, "built-in"
@@ -91,6 +95,8 @@ assert r.status_code == 200, r.text
 assert not (main.UPLOADS / "sofa-2-2.glb").exists()
 assert "sofa-2-2" not in {p["id"] for p in client.get("/api/catalogue").json()["products"]}
 assert client.delete("/api/uploads/sofa-2-2").status_code == 404, "already deleted"
+with main.catalogue_db() as con:
+    assert con.execute("select status from products where id = 'sofa-2-2'").fetchone()[0] == "discontinued"
 r = client.post("/api/uploads", data={"name": "Sofa 2"}, files={"model": ("sofa-2.glb", CATALOGUE_GLB.read_bytes())})
 assert r.json()["id"] == "sofa-2-3", "a deleted upload's id is not reused"
 

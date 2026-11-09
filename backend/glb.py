@@ -155,6 +155,15 @@ class Glb:
         return out
 
 
+def pack(gltf: dict, bin: bytes | None) -> bytes:
+    """A GLB from its JSON and binary chunk (the inverse of Glb's parse)."""
+    js = json.dumps(gltf, separators=(",", ":")).encode()
+    out = struct.pack("<II", len(js) + -len(js) % 4, JSON_CHUNK) + js + b" " * (-len(js) % 4)
+    if bin is not None:
+        out += struct.pack("<II", len(bin) + -len(bin) % 4, BIN_CHUNK) + bin + bytes(-len(bin) % 4)
+    return b"glTF" + struct.pack("<II", 2, 12 + len(out)) + out
+
+
 def local(node: dict) -> list[float]:
     """The node's matrix, column-major as glTF stores it."""
     if "matrix" in node:

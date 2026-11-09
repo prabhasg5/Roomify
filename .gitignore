@@ -65,6 +65,10 @@ desktop.ini
 3d_room/uploads/
 3d_room/uploads-debug/
 3d_room/example/models/uploads/
+# Ingested models, stored by content hash (backend/catalogue/ingest.py)
+3d_room/example/models/assets/
+# The catalogue DB (backend/catalogue/db.py seeds it on first open)
+backend/data/catalogue.db*
 
 # Parked 2D image-generation app (no longer in use) — its local data
 parked/2d_image_generation/*.db

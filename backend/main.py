@@ -1,7 +1,7 @@
 """Roomify backend — the catalogue, designs, and the AR view.
 
-Serves 3d_room/example/catalogue.json (built by tools/build-catalogue.js) with
-prices merged in from backend/data/prices.db and uploaded models appended,
+Serves the catalogue from SQLite (catalogue/db.py: backend/data/catalogue.db, seeded once
+from 3d_room/example/catalogue.json, backend/data/prices.db and uploads.json),
 accepts model uploads and saved designs, and serves 3d_room/ar_view/ to the phone. The Pydantic models below ARE the schema:
 a catalogue or a design that does not validate fails here rather than in the agent.
 
@@ -21,23 +21,21 @@ Both from this directory; `npm run dev` in 3d_room/ starts both.
 
 from __future__ import annotations
 
-import json
-import os
 import re
 import socket
-import sqlite3
-from struct import error as struct_error
 import time
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 import glb
+from catalogue import db, ingest
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "3d_room" / "example"
@@ -45,10 +43,11 @@ AR_VIEW = ROOT / "3d_room" / "ar_view"
 # The r69 script + Three.js JSON meshes ar-dynamic.html loads; AR-only, they go when AR is redone.
 AR_LEGACY = ROOT / "3d_room" / "ar_legacy"
 CATALOGUE = EXAMPLE / "catalogue.json"
-PRICE_DB = Path(__file__).resolve().parent / "data" / "prices.db"
+PRICE_DB = Path(__file__).resolve().parent / "data" / "prices.db"     # seed only
+CATALOGUE_DB = Path(__file__).resolve().parent / "data" / "catalogue.db"
 DESIGNS = AR_VIEW / "models"
-# Uploaded models: <id>.glb as uploaded, its thumbnail, and uploads.json (their catalogue
-# products). Under example/ so the app fetches them from Vite like the catalogue's own GLBs.
+# Uploaded models: <id>.glb as uploaded and its thumbnail (their products are in the DB,
+# retailer `upload`; a pre-DB uploads.json here is read once, by the seed). Under example/ so the app fetches them from Vite like the catalogue's own GLBs.
 UPLOADS = EXAMPLE / "models" / "uploads"
 
 # Baked into the QR code and /network-info, so they are the ports the phone is
@@ -57,7 +56,7 @@ HTTPS_PORT = 8002
 HTTP_PORT = 8080
 
 
-# ── schema (catalogue.json v1) ───────────────────────────────────────────────
+# ── schema (API shape of catalogue v3) ────────────────────────────────────────────
 class Dimensions(BaseModel):
     width: float
     height: float
@@ -88,21 +87,41 @@ class Variant(BaseModel):
     dimensions: Dimensions | None = None
     price_delta: float = 0
     source: str
+    attributes: dict = {}
+
+
+class MaterialOption(BaseModel):
+    id: str
+    label: str
+    texture: str | None = None
+    swatch: str | None = None
+    factors: dict = {}
+    price_delta: float = 0
+    attributes: dict = {}
+
+
+class MaterialSlot(BaseModel):
+    id: str
+    label: str
+    options: list[MaterialOption]
 
 
 class Product(BaseModel):
     id: str
+    retailer: str | None = None
     name: str
     category: str
+    room_types: list[str] = []
     style: str | None = None
-    price: float | None = None          # curated, else filled from the price db
-    placement: str
-    item_type: int
-    variants: list[Variant]
-    # merged in here, not present in catalogue.json
+    price: float | None = None          # curated, else seeded from the price db
     price_min: float | None = None
     price_max: float | None = None
     price_source: str | None = None
+    currency: str = "INR"
+    placement: str
+    item_type: int
+    variants: list[Variant]
+    material_slots: list[MaterialSlot] = []
 
 
 class Meta(BaseModel):
@@ -111,6 +130,7 @@ class Meta(BaseModel):
     generator: str
     units: str
     note: str | None = None
+    total: int                          # matching the filters; products is one page of them
     product_count: int
     variant_count: int
 
@@ -120,140 +140,75 @@ class Catalogue(BaseModel):
     products: list[Product]
 
 
-# ── price merge ──────────────────────────────────────────────────────────────
-# prices.db lists priced items by shop name, the catalogue by mesh name, so an
-# exact name match only covers a third of it. Category is the fallback, and it
-# is a hand-written map because the two vocabularies are genuinely different.
-# Doors and windows are structural — deliberately unpriced.
-CATEGORY_PRICE_NAME = {
-    "bed": "Bed",
-    "chair": "Accent Chair",
-    "coffee_table": "Coffee Table",
-    "dining_table": "Dining Table",
-    "lighting": "Lamp",
-    "media_unit": "TV Stand",
-    "nightstand": "Nightstand",
-    "rug": "Rug",
-    "shelving": "Bookshelf",
-    "side_table": "Side Table",
-    "sofa": "Sofa",
-    "storage": "Wardrobe",
-    "wall_art": "Wall Art",
-}
-
-
-def load_prices() -> dict[str, tuple[float, float]]:
-    """{lowercased item name: (min, max)} — the same item is listed once per
-    room type at different prices, so span every row for that name."""
-    if not PRICE_DB.exists():
-        return {}
-    with sqlite3.connect(f"file:{PRICE_DB}?mode=ro", uri=True) as db:
-        rows = db.execute(
-            "select lower(name), min(price_min), max(price_max) "
-            "from items group by lower(name)"
-        ).fetchall()
-    return {name: (lo, hi) for name, lo, hi in rows}
-
-
-def merge_price(product: Product, prices: dict[str, tuple[float, float]]) -> None:
-    """Fill price_min/max/price. Curated `price` in catalogue.json always wins —
-    derived flows up, curated is never overwritten."""
-    key = product.name.lower()
-    if key in prices:
-        source = product.name
-    else:
-        source = CATEGORY_PRICE_NAME.get(product.category)
-        key = source.lower() if source else None
-    if key not in prices:
-        return
-    lo, hi = prices[key]
-    product.price_min, product.price_max = lo, hi
-    product.price_source = f"epics:{source}"
-    if product.price is None:
-        product.price = round((lo + hi) / 2)
-
-
-# ── loading (mtime-cached: build-catalogue.js reruns often in dev) ───────────
-_cache: tuple[tuple[float, float], Catalogue] | None = None
-
-
-def uploads_file() -> Path:
-    return UPLOADS / "uploads.json"
-
-
-def load_uploads() -> list[dict]:
-    """Uploaded products, plus {"id", "deleted"} for deleted ones: their ids stay taken."""
-    f = uploads_file()
-    return json.loads(f.read_text()) if f.exists() else []
-
-
-def save_uploads(uploads: list[dict]) -> None:
-    tmp = uploads_file().with_suffix(".tmp")
-    tmp.write_text(json.dumps(uploads, indent=2))
-    os.replace(tmp, uploads_file())
-
-
-def get_catalogue() -> Catalogue:
-    global _cache
-    try:
-        mtime = (CATALOGUE.stat().st_mtime,
-                 uploads_file().stat().st_mtime if uploads_file().exists() else 0)
-    except FileNotFoundError:
-        raise HTTPException(503, f"catalogue not built: {CATALOGUE} is missing")
-    if _cache is None or _cache[0] != mtime:
-        data = Catalogue.model_validate(json.loads(CATALOGUE.read_text()))
-        data.products += [Product.model_validate(p) for p in load_uploads() if "deleted" not in p]
-        data.catalogue.product_count = len(data.products)   # what this response holds
-        data.catalogue.variant_count = sum(len(p.variants) for p in data.products)
-        prices = load_prices()
-        for product in data.products:
-            merge_price(product, prices)
-        _cache = (mtime, data)
-    return _cache[1]
-
-
 # ── api ──────────────────────────────────────────────────────────────────────
-app = FastAPI(title="Roomify catalogue", version="1")
+app = FastAPI(title="Roomify catalogue", version="3")
+
+
+@contextmanager
+def catalogue_db():
+    seed = lambda con: db.seed(con, CATALOGUE, PRICE_DB, UPLOADS)
+    with closing(db.connect(CATALOGUE_DB, seed)) as con:
+        yield con
+
+
+def vocab(kind: str, value: str | None, what: str) -> str | None:
+    """A filter outside the taxonomy is a typo, not an empty result."""
+    if value is not None and value not in db.TAXONOMY[kind]:
+        raise HTTPException(422, f"unknown {what} {value!r}")
+    return value
+
+
+def filters(
+    category: str | None = None,
+    room_type: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = Query(None, description="unpriced products are excluded"),
+    max_width_cm: float | None = Query(None, description="size limits match if ONE variant fits all"),
+    max_depth_cm: float | None = None,
+    max_height_cm: float | None = None,
+    limit: int | None = Query(None, ge=1, description="omitted = everything (what the app loads)"),
+    offset: int = Query(0, ge=0),
+) -> dict:
+    return {"category": vocab("categories", category, "category"),
+            "room_type": vocab("room_types", room_type, "room type"),
+            "min_price": min_price, "max_price": max_price, "max_width": max_width_cm,
+            "max_depth": max_depth_cm, "max_height": max_height_cm, "limit": limit, "offset": offset}
 
 
 @app.get("/api/catalogue", response_model=Catalogue)
-def catalogue() -> Catalogue:
-    return get_catalogue()
+def catalogue(f: dict = Depends(filters)) -> Catalogue:
+    with catalogue_db() as con:
+        total, products = db.query(con, **f)
+    return Catalogue(
+        catalogue=Meta(version=3, generated=db.now(), generator="backend/catalogue/db.py",
+                       units="cm", note="SQLite catalogue; dimensions measured, prices curated",
+                       total=total, product_count=len(products),
+                       variant_count=sum(len(p["variants"]) for p in products)),
+        products=products)
 
 
 @app.get("/api/catalogue/products", response_model=list[Product])
-def products(
-    category: str | None = None,
-    max_price: float | None = None,
-    max_width_cm: float | None = Query(None, description="matches if ANY variant fits"),
-) -> list[Product]:
-    out = get_catalogue().products
-    if category:
-        out = [p for p in out if p.category == category]
-    if max_price is not None:
-        # unpriced items are excluded: the agent cannot budget what it cannot cost
-        out = [p for p in out if p.price is not None and p.price <= max_price]
-    if max_width_cm is not None:
-        out = [p for p in out if any(
-            v.dimensions and v.dimensions.width <= max_width_cm for v in p.variants)]
-    return out
+def products(f: dict = Depends(filters)) -> list[dict]:
+    with catalogue_db() as con:
+        return db.query(con, **f)[1]
 
 
 @app.get("/api/catalogue/products/{product_id}", response_model=Product)
-def product(product_id: str) -> Product:
-    for p in get_catalogue().products:
-        if p.id == product_id:
-            return p
-    raise HTTPException(404, f"unknown product id: {product_id}")
+def product(product_id: str) -> dict:
+    with catalogue_db() as con:
+        found = db.query(con, product_id=product_id)[1]
+    if not found:
+        raise HTTPException(404, f"unknown product id: {product_id}")
+    return found[0]
 
 
 # ── model upload ─────────────────────────────────────────────────────────────
 # The GLB is stored byte-identical to the upload: no simplify, no texture resize, no
-# re-encode (stage 2 exists because a conversion changed how uploads look). The server
-# only validates, measures and records; the app warns about heavy models.
+# re-encode (stage 2 exists because a conversion changed how uploads look). It goes through
+# ingestion's stages 1–4 (catalogue/ingest.py) like any retailer's model; unlike theirs it is
+# published at once, its issues recorded but not blocking: it is the user's own model.
 MAX_MODEL = 100 * 1024 * 1024
 MAX_THUMBNAIL = 5 * 1024 * 1024
-PLACEMENT = {1: "floor", 2: "wall", 3: "in_wall", 7: "in_wall_floor", 8: "on_floor", 9: "wall_floor"}
 SCALES = {"auto": None, "100": 100.0, "10": 10.0, "1": 1.0, "2.54": 2.54, "30.48": 30.48}
 THUMB_EXT = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
 
@@ -265,10 +220,6 @@ async def read_capped(f: UploadFile, cap: int, what: str) -> bytes:
         if len(data) > cap:
             raise HTTPException(413, f"{what} exceeds the {cap // (1024 * 1024)} MB limit")
     return bytes(data)
-
-
-def slug(s: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
 @app.post("/api/uploads", response_model=Product)
@@ -284,73 +235,59 @@ async def upload(
     name = name.strip()
     if not name or len(name) > 100:
         raise HTTPException(422, "Please enter a display name (at most 100 characters)")
-    if type not in PLACEMENT:
+    if type not in ingest.PLACEMENT:
         raise HTTPException(422, f"unknown item type {type}")
     if scale not in SCALES:
         raise HTTPException(422, f"unknown scale {scale!r}")
     data = await read_capped(model, MAX_MODEL, "Model")
     try:
-        g = glb.Glb(data)
-        lo, hi = g.bounds()
-        stats = ModelStats(triangles=g.triangles(), textures=g.textures(), bytes=g.size)
-    except glb.GlbError as e:
+        p = ingest.inspect(data, scale=SCALES[scale])   # no declared size, so never re-rooted
+    except ingest.Rejected as e:
         raise HTTPException(422, str(e))
-    except (KeyError, IndexError, TypeError, ValueError, struct_error) as e:
-        raise HTTPException(422, f"GLB is malformed ({e.__class__.__name__}: {e})")
-    size = [b - a for a, b in zip(lo, hi)]
-    unit = SCALES[scale] or glb.auto_scale(size)
     thumb = await read_capped(thumbnail, MAX_THUMBNAIL, "Thumbnail") if thumbnail else b""
     ext = THUMB_EXT.get(glb.sniff(thumb)) if thumb else None
     if thumb and not ext:
         raise HTTPException(422, "Thumbnail must be a PNG, JPEG or WebP image")
 
-    # No await from here on, so two uploads can't both claim one id (one event loop).
-    # ponytail: single-process only; a lock or a db row if uploads ever run multi-worker.
-    uploads = load_uploads()
-    # A deleted upload's id stays taken, so a new upload never takes over designs that used it.
-    taken = {p.id for p in get_catalogue().products} | {p["id"] for p in uploads}
-    base = slug(name) or "upload"
-    pid, n = base, 2
-    while pid in taken:
-        pid, n = f"{base}-{n}", n + 1
-    UPLOADS.mkdir(parents=True, exist_ok=True)
-    (UPLOADS / f"{pid}.glb").write_bytes(data)
-    if ext:
-        (UPLOADS / f"{pid}.{ext}").write_bytes(thumb)
-    product = Product(
-        id=pid, name=name, category="uncategorised", placement=PLACEMENT[type], item_type=type,
-        variants=[Variant(
-            id="default", label="Default", glb=f"models/uploads/{pid}.glb",
-            thumbnail=f"models/uploads/{pid}.{ext}" if ext else None,
-            dimensions=Dimensions(width=r1(size[0] * unit), height=r1(size[1] * unit), depth=r1(size[2] * unit)),
-            unit_scale=unit if unit != 1 else None, stats=stats, source="upload",
-        )],
-    )
-    uploads.append(product.model_dump(exclude_none=True, exclude={"price_min", "price_max", "price_source"}))
-    save_uploads(uploads)
-    return next(p for p in get_catalogue().products if p.id == pid)
+    # The id is picked and inserted in one `begin immediate`: the other uvicorn process
+    # writes this DB too. A deleted upload's id stays taken (its row is discontinued), so a
+    # new upload never takes over designs that used it.
+    base = ingest.slug(name) or "upload"
+    with catalogue_db() as con:
+        with db.tx(con):
+            pid, n = base, 2
+            while con.execute("select 1 from products where id = ?", (pid,)).fetchone():
+                pid, n = f"{base}-{n}", n + 1
+            UPLOADS.mkdir(parents=True, exist_ok=True)
+            (UPLOADS / f"{pid}.glb").write_bytes(p.pop("data"))
+            if ext:
+                (UPLOADS / f"{pid}.{ext}").write_bytes(thumb)
+            p.update(id=pid, name=name, placement=ingest.PLACEMENT[type], item_type=type)
+            p["variants"][0].update(glb=f"models/uploads/{pid}.glb", source="upload",
+                                    thumbnail=f"models/uploads/{pid}.{ext}" if ext else None)
+            db.insert_product(con, p, "upload", db.UPLOADED, lambda url: UPLOADS / Path(url).name)
+        return db.query(con, product_id=pid)[1][0]
 
 
 @app.delete("/api/uploads/{product_id}")
 def delete_upload(product_id: str) -> dict:
-    """Old DELETE /api/models/:name: the GLB, its thumbnail and its catalogue entry go. Saved
-    designs that use it still load and report the item as missing; the id is never reused."""
-    uploads = load_uploads()
-    i = next((i for i, p in enumerate(uploads) if p["id"] == product_id and "deleted" not in p), None)
-    if i is None:
-        raise HTTPException(404, f"no uploaded model {product_id!r}")  # built-ins can't be deleted
-    for v in uploads[i]["variants"]:
-        for url in (v.get("glb"), v.get("thumbnail")):
-            if url:  # a plain file name inside UPLOADS, whatever the entry says
-                (UPLOADS / Path(url).name).unlink(missing_ok=True)
-    uploads[i] = {"id": product_id, "deleted": datetime.now(timezone.utc).isoformat()}
-    save_uploads(uploads)
+    """Old DELETE /api/models/:name: the GLB and its thumbnail go, the product is discontinued.
+    Saved designs that use it still load and report the item as missing; the id is never reused."""
+    with catalogue_db() as con, db.tx(con):
+        urls = con.execute(
+            "select a.path from products p join geometry_variants v on v.product_id = p.id "
+            "join assets a on a.id in (v.glb_asset, v.thumbnail_asset) "
+            "where p.id = ? and p.retailer_id = 'upload' and p.status != 'discontinued'",
+            (product_id,)).fetchall()
+        updated = con.execute(
+            "update products set status = 'discontinued', updated = ? "
+            "where id = ? and retailer_id = 'upload' and status != 'discontinued'",
+            (db.now(), product_id)).rowcount
+        if not updated:
+            raise HTTPException(404, f"no uploaded model {product_id!r}")  # built-ins can't be deleted
+        for (url,) in urls:  # a plain file name inside UPLOADS, whatever the row says
+            (UPLOADS / Path(url).name).unlink(missing_ok=True)
     return {"success": True, "message": f'Deleted "{product_id}"'}
-
-
-def r1(n: float) -> float:
-    """0.1 cm, as build-catalogue.js rounds the catalogue's dimensions."""
-    return round(n * 10) / 10
 
 
 # ── designs ──────────────────────────────────────────────────────────────────
